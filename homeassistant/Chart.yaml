@@ -1,7 +1,7 @@
 apiVersion: v2
 name: homeassistant
 description: A Helm chart for Kubernetes
-type: application
+type: application 
 version: 0.1.0
 appVersion: 2023.6.3
 kubeVersion: ">=1.22.0-0"
