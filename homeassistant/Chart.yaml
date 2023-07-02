@@ -24,5 +24,3 @@ annotations:
   artifacthub.io/links: |-
     - name: App Source
       url: https://github.com/home-assistant/core
-    - name: Chart Source
-      url: https://github.com/RuneRoven/helmcharts/homeassistant/main
