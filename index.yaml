@@ -1,0 +1,35 @@
+apiVersion: v1
+entries:
+  homeassistant:
+  - annotations:
+      artifacthub.io/changes: |-
+        - kind: fixed
+          description: Fixed icon URL
+      artifacthub.io/links: |-
+        - name: App Source
+          url: https://github.com/home-assistant/core
+    apiVersion: v2
+    appVersion: 2023.6.3
+    created: "2023-07-02T21:12:04.8284888+02:00"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 12.2.7
+    description: A Helm chart for Kubernetes
+    digest: 435267d69faab879d0c409a900b1976b269f85d5ebe971fce9ead285fd2f0d5b
+    keywords:
+    - home-automation
+    - mqtt
+    - iot
+    - internet-of-things
+    kubeVersion: '>=1.22.0-0'
+    name: homeassistant
+    sources:
+    - https://github.com/home-assistant/core
+    - https://github.com/k8s-at-home/charts/tree/master/charts/stable/home-assistant
+    type: application
+    urls:
+    - https://runeroven.github.io/helmcharts/homeassistant-0.1.0.tgz
+    version: 0.1.0
+generated: "2023-07-02T21:12:04.8189003+02:00"
