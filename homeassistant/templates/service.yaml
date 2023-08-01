@@ -1,9 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "homeassistant.fullname" . }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
+  name: {{ include "homeassistant.fullname" . }}
 spec:
   type: {{ .Values.service.type }}
   ports:
