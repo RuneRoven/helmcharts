@@ -26,7 +26,6 @@ spec:
         {{- toYaml .Values.tolerations | nindent 8 }}
       securityContext:
         {{- toYaml .Values.securityContext | nindent 8 }}
-      priorityClassName: {{ .Values.podPriorityClassName }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:

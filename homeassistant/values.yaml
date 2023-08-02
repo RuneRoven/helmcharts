@@ -52,7 +52,7 @@ podSecurityContext: {}
   # fsGroup: 1000
 nodeSelector: {}
 tolerations: []
-podPriorityClassName: high-priority
+
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
