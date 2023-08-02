@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "homeassistant.fullname" . }}
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "homeassistant.fullname" . }}  # Specify a unique serviceName for the Headless Service
   replicas: 1  # You can set this to 1 to ensure only one Pod runs
   selector:
     matchLabels:
@@ -53,12 +54,9 @@ spec:
             #   value: {{ $value | quote }}
           {{- end }}
           {{- end }}
-
           volumeMounts:
             - name: config
               mountPath: /etc/homeassistant
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: config
           persistentVolumeClaim:
