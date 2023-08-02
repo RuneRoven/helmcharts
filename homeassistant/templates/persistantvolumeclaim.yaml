@@ -12,5 +12,5 @@ spec:
     requests:
       storage: {{ default .Values.persistence.config.size "1Gi" }}
   {{- if .Values.persistence.config.storageClass }}
-  storageClass: {{ default .Values.persistence.config.storageClass "standard" }}
+  storageClassName: {{ default .Values.persistence.config.storageClass "standard" }}
   {{- end }}
