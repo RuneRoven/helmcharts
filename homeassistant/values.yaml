@@ -6,9 +6,9 @@ nameOverride: ""
 fullnameOverride: ""
 namespace: homeassistant
 
-affinity: {}
-
-env: {}
+env: 
+  #ENV_VAR_NAME_1: ENV_VAR_VALUE_1
+  #ENV_VAR_NAME_2: ENV_VAR_VALUE_2
 
 image:
   # -- image repository
@@ -18,7 +18,6 @@ image:
   # -- image tag Overrides the image tag whose default is the chart appVersion.
   tag: 2023.6.3
 
-imagePullSecrets: []
 
 service:
   main:
@@ -51,6 +50,9 @@ dnsPolicy: ClusterFirstWithHostNet
 
 podSecurityContext: {}
   # fsGroup: 1000
+nodeSelector: {}
+tolerations: []
+podPriorityClassName: high-priority
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
