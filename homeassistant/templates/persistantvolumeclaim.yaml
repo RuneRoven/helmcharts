@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ default .Values.persistence.config.size "1Gi" }}
+  {{- if .Values.persistence.config.storageClass }}
+  storageClass: {{ default .Values.persistence.config.storageClass "standard" }}
+  {{- end }}

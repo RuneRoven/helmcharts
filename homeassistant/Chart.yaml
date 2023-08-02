@@ -10,11 +10,6 @@ keywords:
   - mqtt
   - iot
   - internet-of-things
-dependencies:
-  - name: postgresql
-    version: 12.2.7
-    repository: https://charts.bitnami.com/bitnami
-    condition: postgresql.enabled
 sources:
   - https://github.com/home-assistant/core
 annotations:

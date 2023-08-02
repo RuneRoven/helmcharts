@@ -2,74 +2,55 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "homeassistant.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
 spec:
+  replicas: 1  # You can set this to 1 to ensure only one Pod runs
   selector:
     matchLabels:
       {{- include "homeassistant.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
         {{- include "homeassistant.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      containers:
-      - name: {{ .Chart.Name }}
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        # livenessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: http
-        #     scheme: HTTP
-        ports:
-        - name: http
-          containerPort: 8123
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            port: http
-            path: /
-            scheme: HTTP
-        # startupProbe:
-        #   httpGet:
-        #     port: http
-        #     path: /
-        #     scheme: HTTP
-        resources:
-          {{- toYaml .Values.resources | nindent 12 }}
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 12 }}
-        {{- with .Values.volumeMounts }}
-        volumeMounts:
-          {{- toYaml . | nindent 8 }}
-        {{- end }}
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
+      restartPolicy: Always  # Set the restart policy to "Always"
+      serviceAccountName: {{ include "homeassistant.serviceAccountName" . }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if .Values.podPriorityClassName }}
-      priorityClassName: {{ .Values.podPriorityClassName }}
-      {{- end }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- with .Values.tolerations }}
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      priorityClassName: {{ .Values.podPriorityClassName }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.main.ports.http.port }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/homeassistant
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       volumes:
-      {{- with .Values.volumes }}
-        {{- toYaml . | nindent 6 }}
-      {{- end }}
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "homeassistant.fullname" . }}-config

@@ -1,124 +1,10 @@
-image:
-  # -- image repository
-  repository: ghcr.io/home-assistant/home-assistant
-  # -- image pull policy
-  pullPolicy: IfNotPresent
-  # -- image tag
-  tag: 2023.6.3
-
-# -- environment variables.
-# @default -- See [values.yaml](./values.yaml)
-env:
-  # -- Set the container timezone
-  TZ: Europe/Stockholm
-
-# -- Configures service settings for the chart.
-# @default -- See [values.yaml](./values.yaml)
-service:
-  main:
-    ports:
-      http:
-        port: 8123
-serviceAccount:
-  create: true
-  
-ingress:
-  # -- Enable and configure ingress settings for the chart under this key.
-  # @default -- See [values.yaml](./values.yaml)
-  main:
-    enabled: false
-    hosts:
-      - host: homeassistant.local
-    #     paths:
-    #       - path: /
-    # tls:
-    #   - secretName: chart-example.local-tls
-    #     hosts:
-    #       - chart-example.local
-
-# -- Enable devices to be discoverable
-hostNetwork: true
-
-# -- When hostNetwork is true set dnsPolicy to `ClusterFirstWithHostNet`
-dnsPolicy: ClusterFirstWithHostNet
-
-autoscaling:
-  enabled: false
-replicaCount: 1
-homeassistant.selectorLabels
-homeassistant.fullname
-homeassistant.labels
-podAnnotations
-imagePullSecrets: none
-podSecurityContext
-securityContext
-
-resources
-nodeSelector
-affinity
-tolerations
-
-persistence:
-  # -- Configure persistence settings for the chart under this key.
-  # @default -- See [values.yaml](./values.yaml)
-  config:
-    enabled: true
-    retain: true
-    # storageClass: ""
-    # accessMode: ReadWriteOnce
-    # size: 1Gi
-
-# -- Enable and configure postgresql database subchart under this key.
-#    For more options see [postgresql chart documentation](https://github.com/bitnami/charts/tree/master/bitnami/postgresql)
-# @default -- See [values.yaml](./values.yaml)
-postgresql:
-  enabled: true
-  auth:
-    database: home-assistant
-    postgresPassword: changeme
-  primary:
-    persistence:
-      enabled: false
-      # storageClass: ""
-      # size: 8Gi
-
-addons:
-  codeserver:
-    # -- Enable VS Code server addon.
-    #    This allows for easy access to configuration.yaml
-    enabled: false
-    # -- Enable and configure ingress settings for the VS Code server under this key.
-    # @default -- See [values.yaml](./values.yaml)
-    ingress:
-      enabled: false
-      # hosts:
-      #   - host: code.example.com
-      #     paths:
-      #       - path: /
-      # tls:
-      #   - secretName: code.example.com-tls
-      #     hosts:
-      #       - code.example.com
-    # @ignored
-    args:
-      - --auth=none
-      - --user-data-dir=/data/config/.vscode
-    # @ignored
-    volumeMounts:
-      - name: config
-        mountPath: /data/config
-
-
-
-        ...................................
-
-
-        # Default values for homeassistant.
+# Default values for homeassistant.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 nameOverride: ""
 fullnameOverride: ""
+namespace: homeassistant
 
 affinity: {}
 
@@ -134,29 +20,34 @@ image:
 
 imagePullSecrets: []
 
+service:
+  main:
+    ports:
+      http:
+        port: 8123
+  type: ClusterIP
+
 ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    # cert-manager.io/cluster-issuer:
-    # cert-manager.io/issuer:
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-  - host: "your-hostname"
-    paths:
-    - path: /
-      pathType: ImplementationSpecific
-  tls:
-  - secretName: "your-tls-secret"
+  # -- Enable and configure ingress settings for the chart under this key.
+  # @default -- See [values.yaml](./values.yaml)
+  main:
+    enabled: false
     hosts:
-    - "your-hostname"
+      - host: homeassistant.local
+        paths:
+          - path: /
+    # tls:
+    #   - secretName: chart-example.local-tls
+    #     hosts:
+    #       - chart-example.local
+serviceAccount:
+  create: true
 
-nodeSelector: {}
+# -- Enable devices to be discoverable
+hostNetwork: true
 
-podAnnotations: {}
-
-podPriorityClassName: ""
+# -- When hostNetwork is true set dnsPolicy to `ClusterFirstWithHostNet`
+dnsPolicy: ClusterFirstWithHostNet
 
 podSecurityContext: {}
   # fsGroup: 1000
@@ -174,19 +65,12 @@ resources: {}
   #   memory: 128Mi
 
 securityContext:
-  capabilities:
-    add:
-    - NET_RAW   # https://github.com/home-assistant/core/issues/62188#issuecomment-996801063
+  # capabilities:
+  #   drop:
+  #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-
-service:
-  annotations: {}
-  type: ClusterIP
-  port: 8123
-
-tolerations: []
 
 volumeMounts: []
 # - name: config
@@ -197,3 +81,12 @@ volumes: []
 #   hostPath:
 #     path: /etc/homeassistant
 #     type: DirectoryOrCreate
+
+persistence:
+  # -- Configure persistence settings for the chart under this key.
+  # @default -- See [values.yaml](./values.yaml)
+  config:
+    enabled: true
+    retain: true
+    storageClass: "standard"
+    size: 2Gi
