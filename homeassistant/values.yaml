@@ -16,7 +16,7 @@ image:
   # -- image pull policy
   pullPolicy: IfNotPresent
   # -- image tag Overrides the image tag whose default is the chart appVersion.
-  tag: 2023.6.3
+  tag: 2023.8
 
 
 service:
