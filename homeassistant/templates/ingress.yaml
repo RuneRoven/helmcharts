@@ -26,4 +26,4 @@ metadata:
 spec:
   redirectScheme:
     scheme: http
-    port: "{{ .Values.service.main.ports.http.port | quote }}"
+    port: "{{ .Values.service.main.ports.http.port | toString }}"
