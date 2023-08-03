@@ -1,25 +1,29 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
 metadata:
-  name: {{ include "homeassistant.fullname" . }}-main
   namespace: {{ .Values.namespace }}
+  name: {{ include "homeassistant.fullname" . }}-ingress
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
 spec:
-  rules:
-    - host: homeassistant.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "homeassistant.fullname" . }}-main
-                port:
-                  number: {{ .Values.service.main.ports.http.port }}
-  {{- if .Values.ingress.main.tls }}
-  tls:
-    - hosts:
-        - homeassistant.local
-      secretName: chart-example.local-tls
-  {{- end }}
+  routes:
+    - match: Host(`homeassistant.local`)
+      kind: Rule
+      services:
+        - name: {{ include "homeassistant.fullname" . }}-main
+          port: {{ .Values.service.main.ports.http.port }}
+      middlewares:
+        - name: {{ include "homeassistant.fullname" . }}-redirectscheme
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "homeassistant.fullname" . }}-redirectscheme
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  redirectScheme:
+    scheme: http
+    port: {{ .Values.service.main.ports.http.port }}
