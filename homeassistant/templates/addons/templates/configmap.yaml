@@ -1,0 +1,17 @@
+{{- define "addons.templates.configmap" -}}
+{{- $addon := .Data -}}
+{{- $values := .Values -}}
+{{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+data:
+  configuration.yaml: |-
+{{ $addon.config | nindent 4 }}
+{{- end }}
+{{- end }}

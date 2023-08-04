@@ -1,0 +1,12 @@
+{{/* Define the "addons.smarterdevicemanager" template */}}
+{{- define "addons.smarterdevicemanager" -}}
+{{- $values := .Values -}}
+{{- $data := .Values.addons.smarterdevicemanager -}}
+{{- $addonName := "smarterdevicemanager" -}}
+{{- if $data.enabled }}
+{{- include "addons.templates.configmap" (dict "AddonName" $addonName "Data" $data "Values" $values "Chart" .Chart "Release" .Release) -}}
+{{- include "addons.templates.daemonset" (dict "AddonName" $addonName "Data" $data "Values" $values "Chart" .Chart "Release" .Release) -}}
+{{- include "addons.templates.persistentvolumes" (dict "AddonName" $addonName "Data" $data "Values" $values "Chart" .Chart "Release" .Release) -}}
+{{- include "addons.templates.services" (dict "AddonName" $addonName "Data" $data "Values" $values "Chart" .Chart "Release" .Release) -}}
+{{- end }}
+{{- end }}

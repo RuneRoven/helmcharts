@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 #
-nameOverride: ""
+nameOverride: "aslars"
 fullnameOverride: ""
 namespace: homeassistant
 
@@ -40,6 +40,7 @@ ingress:
     #     hosts:
     #       - chart-example.local
 serviceAccount:
+  name: ""
   create: true
 
 # -- Enable devices to be discoverable
@@ -92,3 +93,50 @@ persistence:
     retain: true
     storageClassName: "standard"
     size: 2Gi
+      
+addons:
+  smarterdevicemanager:
+    enabled: true
+    namespace: 
+    image:
+      repository: registry.gitlab.com/arm-research/smarter/smarter-device-manager
+      tag: v1.20.11
+      pullPolicy: IfNotPresent
+    config: |
+      - devicematch: ^ttyUSB[0-9]*$
+        nummaxdevices: 6
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+    termination:
+      messagePath: /var/log/termination-log
+    persistence:
+      devfs:
+        enabled: true
+        hostPath: /dev
+      sysfs:
+        enabled: true
+        hostPath: /sys
+      kubeletsockets:
+        enabled: true
+        hostPath: "/var/lib/kubelet/device-plugins"
+
+  # ... (addon1 specific configuration)
+
+    # -- Custom priority class for different treatment by the scheduler
+    # Setting this is not necessary, but it is recommended.
+    # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
+    priorityClassName: system-node-critical
+
+    # -- Configure the securityContext for this pod
+    # [[ref]](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
+    # @default -- See values.yaml
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      allowPrivilegeEscalation: false
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+

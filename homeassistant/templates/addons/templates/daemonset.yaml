@@ -1,0 +1,46 @@
+{{- define "addons.templates.daemonset" -}}
+{{- $addon := .Data -}}
+{{- $values := .Values -}}
+{{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $addonName }}
+  template:
+    metadata:
+      generateName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-
+      labels:
+        app: {{ $addonName }}
+    spec:
+      containers:
+      - name: {{ $addonName }}
+        image: {{ $addon.image.repository }}:{{ $addon.image.tag }}
+        imagePullPolicy: {{ $addon.image.pullPolicy }}
+        volumeMounts:
+        - name: configuration-volume
+          mountPath: /path/to/your/configuration.yaml # Modify this to the correct path inside the container
+          subPath: configuration.yaml
+          readOnly: true
+        securityContext:
+          capabilities:
+            drop:
+              - ALL
+          allowPrivilegeEscalation: false
+          # readOnlyRootFilesystem: true
+          # runAsNonRoot: true
+          # runAsUser: 1000
+      terminationMessagePath: {{ $addon.termination.messagePath }}
+      volumes:
+      - name: configuration-volume
+        configMap:
+          name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+{{- end }}
+{{- end }}
