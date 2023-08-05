@@ -1,4 +1,4 @@
-{{- define "addons.templates.persistentvolumes" -}}
+{{- define "smarterdevicemanager.persistentvolumes" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}

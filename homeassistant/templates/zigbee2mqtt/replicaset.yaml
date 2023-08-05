@@ -1,4 +1,4 @@
-{{- define "addons.templates.replicaset" -}}
+{{- define "zigbee2mqtt.replicaset" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
@@ -14,11 +14,11 @@ spec:
   replicas: {{ $addon.replicaCount }}
   selector:
     matchLabels:
-      app: {{ $addonName }}
+      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   template:
     metadata:
       labels:
-        app: {{ $addonName }}
+        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
     spec:
       volumes:
         - name: config

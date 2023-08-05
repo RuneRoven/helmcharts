@@ -1,4 +1,4 @@
-{{- define "addons.templates.ingress" -}}
+{{- define "zwavejs2mqtt.ingress" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}

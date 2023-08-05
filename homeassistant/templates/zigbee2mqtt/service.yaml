@@ -1,4 +1,4 @@
-{{- define "addons.templates.service" -}}
+{{- define "zigbee2mqtt.service" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}

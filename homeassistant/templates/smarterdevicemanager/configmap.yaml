@@ -1,4 +1,4 @@
-{{- define "addons.templates.configmap" -}}
+{{- define "smarterdevicemanager.configmap" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}

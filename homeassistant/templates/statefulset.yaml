@@ -61,5 +61,5 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "homeassistant.fullname" . }}-config
 
-{{/* Include the smarterdevicemanager.yaml template */}}
-{{ include "addons.addons" . }}
+{{/* Include the addons.yaml template */}}
+{{ include "addons.helper" . }}

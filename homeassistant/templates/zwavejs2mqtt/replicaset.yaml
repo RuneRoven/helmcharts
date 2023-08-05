@@ -1,0 +1,90 @@
+{{- define "zwavejs2mqtt.replicaset" -}}
+{{- $addon := .Data -}}
+{{- $values := .Values -}}
+{{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $addon.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+    spec:
+      volumes:
+        - name: config
+          {{- if $addon.persistence.config.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+
+        - name: usb
+          {{- if index $addon.persistence "usb" }}
+          hostPath:
+            path: {{ $addon.persistence.usb.hostPath }}
+            type: {{ $addon.persistence.usb.type }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      containers:
+        - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+          image: "{{ $addon.image.repository }}:{{ $addon.image.tag }}"
+          imagePullPolicy: {{ $addon.image.pullPolicy }}
+          ports:
+            {{- range $key, $port := $addon.service.main.ports }}
+            - name: {{ $key }}
+              containerPort: {{ $port.port }}
+            {{- end }}
+          env:
+            - name: TZ
+              value: {{ $values.env.TZ }}
+          {{- if $addon.resources }}
+          resources:
+          {{- if $addon.resources.limits }}
+            limits:
+              {{- toYaml $addon.resources.limits | nindent 12 }}
+          {{- end }}
+          {{- if $addon.resources.requests }}
+            requests:
+              {{- toYaml $addon.resources.requests | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ $addon.persistence.config.mountPath }}
+            {{- if $addon.persistence.usb }}
+            - name: usb
+              mountPath: {{ $addon.persistence.usb.hostPath }}
+            {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ $addon.service.main.ports.http.port }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ $addon.service.main.ports.http.port }}
+          startupProbe:
+            tcpSocket:
+              port: {{ $addon.service.main.ports.http.port }}
+          {{- if $addon.securityContext }}
+          securityContext:
+            privileged: true
+          {{- end }}
+      restartPolicy: {{ $addon.restartPolicy }}
+      dnsPolicy: {{ $addon.dnsPolicy }}
+      serviceAccountName: {{ include "homeassistant.serviceAccountName" . }}
+      automountServiceAccountToken: {{ $addon.automountServiceAccountToken }}
+      schedulerName: {{ $addon.schedulerName }}
+      enableServiceLinks: {{ $addon.enableServiceLinks }}
+{{- end }}
+{{- end }}

@@ -1,4 +1,4 @@
-{{- define "addons.templates.daemonset" -}}
+{{- define "smarterdevicemanager.daemonset" -}}
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
