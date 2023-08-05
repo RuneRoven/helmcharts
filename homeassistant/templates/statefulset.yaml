@@ -62,4 +62,4 @@ spec:
             claimName: {{ include "homeassistant.fullname" . }}-config
 
 {{/* Include the addons.yaml template */}}
-{{ include "addons.helper" . }}
+{{ include "addons.helper" .Values }}

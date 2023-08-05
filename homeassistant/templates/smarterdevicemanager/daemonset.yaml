@@ -2,7 +2,6 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
-{{- if $addon.enabled }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -13,12 +12,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ $addonName }}
+      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   template:
     metadata:
       generateName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
       labels:
-        app: {{ $addonName }}
+        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
     spec:
       containers:
       - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
@@ -42,5 +41,4 @@ spec:
       - name: configuration-volume
         configMap:
           name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
-{{- end }}
 {{- end }}

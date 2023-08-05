@@ -2,7 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
-{{- if and $addon.enabled $addon.ingress.main.enabled }}
+{{- if $addon.ingress.main.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

@@ -2,7 +2,6 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
-{{- if $addon.enabled }}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -19,7 +18,7 @@ spec:
   storageClassName: manual
   hostPath:
     path: {{ $addon.persistence.devfs.hostPath }}
-{{- end }}
+
 
 {{- if $addon.persistence.sysfs.enabled }}
 ---
