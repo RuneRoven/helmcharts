@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "homeassistant.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default .Chart.Name .Values.namePrefix | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -10,14 +10,23 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "homeassistant.fullname" -}}
-
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- $releaseName := default .Release.Name "" }}
-{{- if and .Chart $releaseName (contains $name $releaseName) }}
-{{- $releaseName | trunc 63 | trimSuffix "-" }}
+{{- define "homeassistant.fullnamePrefix" -}}
+{{- $name := default .Chart.Name .Values.namePrefix }}
+{{- if not .Values.namePrefix }}
+  {{- default .Release.Name "" | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" $releaseName $name | trunc 63 | trimSuffix "-" }}
+  {{- printf "%s-%s" .Release.Name .Values.namePrefix | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "homeassistant.fullname" -}}
+{{- if .Values.namePrefix }}
+  {{- printf "%s-%s" .Release.Name .Values.namePrefix | trunc 63 | trimSuffix "-" }}
+{{- else }}
+  {{- default .Release.Name "" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 
@@ -68,5 +77,3 @@ Create the name of the service account to use
 {{- .Release.Namespace -}}
 {{- end -}}
 {{- end }}
-
-

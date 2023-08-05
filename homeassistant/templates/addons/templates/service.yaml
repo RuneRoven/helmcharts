@@ -1,0 +1,25 @@
+{{- define "addons.templates.service" -}}
+{{- $addon := .Data -}}
+{{- $values := .Values -}}
+{{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "homeassistant.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- range $key, $port := $addon.service.main.ports }}
+    - name: {{ $key }}
+      protocol: TCP
+      port: {{ $port.port }}
+      targetPort: {{ $key }}
+    {{- end }}
+  type: {{ $addon.service.type }}
+{{- end }}
+{{- end }}

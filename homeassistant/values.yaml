@@ -1,12 +1,15 @@
 # Default values for homeassistant.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-#
-nameOverride: "aslars"
-fullnameOverride: ""
+
+# namePrefix will add extra name for you pods.
+# if not used pods will get release name + pod name. otherwise it will be release name + name prefix + pod name
+# for example myHomeassistant-service and if using namePrefix: skeletor it will be myHomeassistant-skeletor-service
+namePrefix: ""
 namespace: homeassistant
 
-env: 
+env:
+  TZ: UTC
   #ENV_VAR_NAME_1: ENV_VAR_VALUE_1
   #ENV_VAR_NAME_2: ENV_VAR_VALUE_2
 
@@ -97,7 +100,6 @@ persistence:
 addons:
   smarterdevicemanager:
     enabled: true
-    namespace: 
     image:
       repository: registry.gitlab.com/arm-research/smarter/smarter-device-manager
       tag: v1.20.11
@@ -120,8 +122,6 @@ addons:
         enabled: true
         hostPath: "/var/lib/kubelet/device-plugins"
 
-  # ... (addon1 specific configuration)
-
     # -- Custom priority class for different treatment by the scheduler
     # Setting this is not necessary, but it is recommended.
     # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
@@ -139,4 +139,70 @@ addons:
       # runAsNonRoot: true
       # runAsUser: 1000
 
+  zwavejs2mqtt:
+    enabled : true
+    image:
+      pullPolicy: IfNotPresent
+      repository: zwavejs/zwavejs2mqtt
+      tag: 8.22.0
+    ingress:
+      main:
+        enabled: true
+        host: zwave.homessistant.local
+    persistence:
+      config:
+        enabled: true
+        mountPath: /usr/src/app/store
+      usb:
+        enabled: true
+        hostPath: /dev/ttyUSB1
+        type: hostPath
+    resources:
+      limits:
+        smarter-devices/ttyUSB1: 1
+      requests:
+        smarter-devices/ttyUSB1: 1
+    securityContext:
+      privileged: true
+    service:
+      main:
+        ports:
+          http:
+            port: 8091
+          websocket:
+            enabled: true
+            port: 3000 
 
+  zigbee2mqtt:
+    enabled: true
+    image:
+      repository: koenkk/zigbee2mqtt
+      tag: latest
+      pullPolicy: IfNotPresent
+    ingress:
+      main:
+        enabled: true
+        host: zigbee.homessistant.local
+    persistence:
+      config:
+        enabled: true
+        mountPath: /app/data
+    service:
+      main:
+        ports:
+          http:
+            port: 8080
+
+    resources:
+ #     limits:
+ #       cpu: 500m
+ #       memory: 512Mi
+ #     requests:
+ #       cpu: 100m
+ #       memory: 256Mi
+    securityContext:
+      runAsUser: 1000
+      fsGroup: 1000
+    env:
+    # -- Set the data folder for Zigbee2MQTT.
+      ZIGBEE2MQTT_DATA: /data

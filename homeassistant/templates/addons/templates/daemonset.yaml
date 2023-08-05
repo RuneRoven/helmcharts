@@ -16,12 +16,12 @@ spec:
       app: {{ $addonName }}
   template:
     metadata:
-      generateName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-
+      generateName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
       labels:
         app: {{ $addonName }}
     spec:
       containers:
-      - name: {{ $addonName }}
+      - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
         image: {{ $addon.image.repository }}:{{ $addon.image.tag }}
         imagePullPolicy: {{ $addon.image.pullPolicy }}
         volumeMounts:
