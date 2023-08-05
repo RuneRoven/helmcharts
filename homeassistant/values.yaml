@@ -176,7 +176,7 @@ addons:
     enabled: true
     image:
       repository: koenkk/zigbee2mqtt
-      tag: latest
+      tag: 1.32.2
       pullPolicy: IfNotPresent
     ingress:
       main:
@@ -186,19 +186,25 @@ addons:
       config:
         enabled: true
         mountPath: /app/data
+      usb:
+        enabled: true
+        hostPath: /dev/ttyUSB0
+        type: hostPath
+    resources:
+      limits:
+        smarter-devices/ttyUSB0: 1
+#       cpu: 500m
+#       memory: 512Mi
+      requests:
+        smarter-devices/ttyUSB0: 1
+#       cpu: 100m
+#       memory: 256Mi
     service:
       main:
         ports:
           http:
             port: 8080
 
-    resources:
- #     limits:
- #       cpu: 500m
- #       memory: 512Mi
- #     requests:
- #       cpu: 100m
- #       memory: 256Mi
     securityContext:
       runAsUser: 1000
       fsGroup: 1000

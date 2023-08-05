@@ -13,6 +13,8 @@ keywords:
 sources:
   - https://github.com/home-assistant/core
   - https://gitlab.com/arm-research/smarter/smarter-device-manager/
+  - https://www.zigbee2mqtt.io/
+  - https://github.com/OpenZWave/Zwave2Mqtt
 annotations:
   artifacthub.io/changes: |-
     - kind: fixed
