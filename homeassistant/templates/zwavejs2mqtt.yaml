@@ -61,9 +61,11 @@ spec:
 
         - name: usb
           {{- if index $addon.persistence "usb" }}
+          {{- with $addon.persistence.usb }}
           hostPath:
-            path: {{ $addon.persistence.usb.hostPath }}
-            type: {{ $addon.persistence.usb.type }}
+            path: {{ .hostPath }}
+            type: DirectoryOrCreate # Change this to a supported type like "Directory" or "DirectoryOrCreate"
+          {{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}
@@ -81,21 +83,16 @@ spec:
               value: {{ .Values.env.TZ }}
           {{- if $addon.resources }}
           resources:
-          {{- if $addon.resources.limits }}
-            limits:
-              {{- toYaml $addon.resources.limits | nindent 12 }}
-          {{- end }}
-          {{- if $addon.resources.requests }}
-            requests:
-              {{- toYaml $addon.resources.requests | nindent 12 }}
-          {{- end }}
+          {{- toYaml $addon.resources | nindent 12 }} # Update this line to remove "smarter-devices/ttyUSB1" and "smarter-devices/ttyUSB0"
           {{- end }}
           volumeMounts:
             - name: config
               mountPath: {{ $addon.persistence.config.mountPath }}
             {{- if $addon.persistence.usb }}
+            {{- with $addon.persistence.usb }}
             - name: usb
-              mountPath: {{ $addon.persistence.usb.hostPath }}
+              mountPath: {{ .hostPath }} # Use the correct mount path from the map
+            {{- end }}
             {{- end }}
           livenessProbe:
             tcpSocket:
