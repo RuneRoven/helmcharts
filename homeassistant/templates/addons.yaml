@@ -6,8 +6,8 @@
 {{- $release := .Release -}} 
 {{/* # Get the .Chart object */}}
 {{- $chart := .Chart -}}  
-{{/* H# Iterate over all addons in .Values.addons  */}}
-{{- range $addonName, $data := $values.addons -}} 
+{{/* H# Iterate over all addons in .Values._extra.addons  */}}
+{{- range $addonName, $data := $values._extra.addons -}} 
 {{/* # Check if the addon is enabled  */}}
 {{- if $data.enabled }} 
 {{/* New values with both main chart and the addon */}}
