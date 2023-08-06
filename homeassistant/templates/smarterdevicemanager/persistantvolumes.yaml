@@ -2,6 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -11,14 +12,14 @@ metadata:
     {{- include "homeassistant.labels" . | nindent 4 }}
 spec:
   capacity:
-    storage: 1Gi
+    storage:  {{ $addon.persistence.devfs.capacity.storage }}
   accessModes:
     - ReadOnlyMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual
   hostPath:
     path: {{ $addon.persistence.devfs.hostPath }}
-
+{{- end }}
 
 {{- if $addon.persistence.sysfs.enabled }}
 ---
@@ -28,7 +29,7 @@ metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-sysfs
 spec:
   capacity:
-    storage: 1Gi
+    storage: {{ $addon.persistence.sysfs.capacity.storage }}
   accessModes:
     - ReadOnlyMany
   persistentVolumeReclaimPolicy: Retain
@@ -45,7 +46,7 @@ metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-kubeletsockets
 spec:
   capacity:
-    storage: 1Gi
+    storage:  {{ $addon.persistence.kubeletsockets.capacity.storage }}
   accessModes:
     - ReadOnlyMany
   persistentVolumeReclaimPolicy: Retain

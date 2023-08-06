@@ -2,6 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
@@ -85,4 +86,5 @@ spec:
       automountServiceAccountToken: {{ $addon.automountServiceAccountToken }}
       schedulerName: {{ $addon.schedulerName }}
       enableServiceLinks: {{ $addon.enableServiceLinks }}
+{{- end }}
 {{- end }}

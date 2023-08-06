@@ -2,6 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -41,4 +42,5 @@ spec:
       - name: configuration-volume
         configMap:
           name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+{{- end }}
 {{- end }}

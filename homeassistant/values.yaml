@@ -114,13 +114,18 @@ addons:
       devfs:
         enabled: true
         hostPath: /dev
+        capacity:
+          storage: 1Gi
       sysfs:
         enabled: true
         hostPath: /sys
+        capacity:
+          storage: 1Gi
       kubeletsockets:
         enabled: true
         hostPath: "/var/lib/kubelet/device-plugins"
-
+        capacity:
+          storage: 1Gi
     # -- Custom priority class for different treatment by the scheduler
     # Setting this is not necessary, but it is recommended.
     # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
@@ -152,6 +157,8 @@ addons:
       config:
         enabled: true
         mountPath: /usr/src/app/store
+        capacity:
+          storage: 1Gi    
       usb:
         enabled: true
         hostPath: /dev/ttyUSB1
@@ -186,6 +193,8 @@ addons:
       config:
         enabled: true
         mountPath: /app/data
+        capacity:
+          storage: 1Gi  
       usb:
         enabled: true
         hostPath: /dev/ttyUSB0

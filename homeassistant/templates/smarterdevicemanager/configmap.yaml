@@ -2,6 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
+{{- if $addon.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,4 +13,5 @@ metadata:
 data:
   configuration.yaml: |-
 {{ $addon.config | nindent 4 }}
+{{- end }}
 {{- end }}

@@ -2,7 +2,7 @@
 {{- $addon := .Data -}}
 {{- $values := .Values -}}
 {{- $addonName := .AddonName -}}
-
+{{- if $addon.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -22,4 +22,4 @@ spec:
     {{- end }}
   type: {{ $addon.service.type }}
 {{- end }}
-
+{{- end }}
