@@ -1,1 +1,11 @@
 
+{{- $name := default .Chart.Name .Release.Name }}
+{{- $namespace := default .Release.Namespace "default" }}
+
+Thank you for installing {{ $name }}.
+Your release is named {{ $name }}.
+
+To access the application, you can use the following commands:
+
+For a list of all installed releases, you can run:
+$ helm list -n {{ $namespace }}

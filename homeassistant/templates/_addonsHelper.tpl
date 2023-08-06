@@ -17,7 +17,10 @@
 {{- end }}
 {{- end }}
 {{- end }}
+{{/* end of addons.helper template */}}
 
+
+{{/* end of addons.helper template */}}
 {{/* Define the "addons.smarterdevicemanager" template */}}
 {{- define "smarterdevicemanager.helper" -}}
 {{- include "smarterdevicemanager.configmap" . -}}
