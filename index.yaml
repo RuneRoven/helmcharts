@@ -10,9 +10,9 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.8.0
-    created: "2023-08-06T09:48:45.9932749+02:00"
+    created: "2023-08-06T09:52:57.5663737+02:00"
     description: A Helm chart for Kubernetes
-    digest: ed11c0e8ffe58d2f90a319d054a72b75e7db65198a9db881670655392d21a6d2
+    digest: f68d7738157aa0e7b32a949ea4ff4047bb2b2ba729af09f4546350bc6ba43884
     keywords:
     - home-automation
     - mqtt
@@ -27,8 +27,8 @@ entries:
     - https://github.com/OpenZWave/Zwave2Mqtt
     type: application
     urls:
-    - https://runeroven.github.io/helmcharts/homeassistant-0.1.1.tgz
-    version: 0.1.1
+    - https://runeroven.github.io/helmcharts/homeassistant-0.1.2.tgz
+    version: 0.1.2
   - annotations:
       artifacthub.io/changes: |-
         - kind: fixed
@@ -38,7 +38,7 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.6.3
-    created: "2023-08-06T09:48:45.9794387+02:00"
+    created: "2023-08-06T09:52:57.5637138+02:00"
     description: A Helm chart for Kubernetes
     digest: b70e8b661c18f2456eb8c1b35e87f14f8e91788447df199b8f78fceef2fcc167
     keywords:
@@ -54,4 +54,4 @@ entries:
     urls:
     - https://runeroven.github.io/helmcharts/homeassistant-0.1.0.tgz
     version: 0.1.0
-generated: "2023-08-06T09:48:45.9776222+02:00"
+generated: "2023-08-06T09:52:57.5626594+02:00"

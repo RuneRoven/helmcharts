@@ -95,129 +95,128 @@ persistence:
     retain: true
     storageClassName: "standard"
     size: 2Gi
+      
+addons:
+  smarterdevicemanager:
+    enabled: true
+    image:
+      repository: registry.gitlab.com/arm-research/smarter/smarter-device-manager
+      tag: v1.20.11
+      pullPolicy: IfNotPresent
+    config: |
+      - devicematch: ^ttyUSB[0-9]*$
+        nummaxdevices: 6
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+    termination:
+      messagePath: /var/log/termination-log
+    persistence:
+      devfs:
+        enabled: true
+        hostPath: /dev
+        capacity:
+          storage: 1Gi
+      sysfs:
+        enabled: true
+        hostPath: /sys
+        capacity:
+          storage: 1Gi
+      kubeletsockets:
+        enabled: true
+        hostPath: "/var/lib/kubelet/device-plugins"
+        capacity:
+          storage: 1Gi
+    # -- Custom priority class for different treatment by the scheduler
+    # Setting this is not necessary, but it is recommended.
+    # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
+    priorityClassName: system-node-critical
 
-_extra:      
-  addons:
-    smarterdevicemanager:
-      enabled: true
-      image:
-        repository: registry.gitlab.com/arm-research/smarter/smarter-device-manager
-        tag: v1.20.11
-        pullPolicy: IfNotPresent
-      config: |
-        - devicematch: ^ttyUSB[0-9]*$
-          nummaxdevices: 6
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      termination:
-        messagePath: /var/log/termination-log
-      persistence:
-        devfs:
-          enabled: true
-          hostPath: /dev
-          capacity:
-            storage: 1Gi
-        sysfs:
-          enabled: true
-          hostPath: /sys
-          capacity:
-            storage: 1Gi
-        kubeletsockets:
-          enabled: true
-          hostPath: "/var/lib/kubelet/device-plugins"
-          capacity:
-            storage: 1Gi
-      # -- Custom priority class for different treatment by the scheduler
-      # Setting this is not necessary, but it is recommended.
-      # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
-      priorityClassName: system-node-critical
+    # -- Configure the securityContext for this pod
+    # [[ref]](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
+    # @default -- See values.yaml
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      allowPrivilegeEscalation: false
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
 
-      # -- Configure the securityContext for this pod
-      # [[ref]](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
-      # @default -- See values.yaml
-      securityContext:
-        capabilities:
-          drop:
-            - ALL
-        allowPrivilegeEscalation: false
-        # readOnlyRootFilesystem: true
-        # runAsNonRoot: true
-        # runAsUser: 1000
+  zwavejs2mqtt:
+    enabled : true
+    image:
+      pullPolicy: IfNotPresent
+      repository: zwavejs/zwavejs2mqtt
+      tag: 8.22.0
+    ingress:
+      main:
+        enabled: true
+        host: zwave.homessistant.local
+    persistence:
+      config:
+        enabled: true
+        mountPath: /usr/src/app/store
+        capacity:
+          storage: 1Gi    
+      usb:
+        enabled: true
+        hostPath: /dev/ttyUSB1
+        type: hostPath
+    resources:
+      limits:
+        smarter-devices/ttyUSB1: 1
+      requests:
+        smarter-devices/ttyUSB1: 1
+    securityContext:
+      privileged: true
+    service:
+      main:
+        ports:
+          http:
+            port: 8091
+          websocket:
+            enabled: true
+            port: 3000 
 
-    zwavejs2mqtt:
-      enabled : true
-      image:
-        pullPolicy: IfNotPresent
-        repository: zwavejs/zwavejs2mqtt
-        tag: 8.22.0
-      ingress:
-        main:
-          enabled: true
-          host: zwave.homessistant.local
-      persistence:
-        config:
-          enabled: true
-          mountPath: /usr/src/app/store
-          capacity:
-            storage: 1Gi    
-        usb:
-          enabled: true
-          hostPath: /dev/ttyUSB1
-          type: hostPath
-      resources:
-        limits:
-          smarter-devices/ttyUSB1: 1
-        requests:
-          smarter-devices/ttyUSB1: 1
-      securityContext:
-        privileged: true
-      service:
-        main:
-          ports:
-            http:
-              port: 8091
-            websocket:
-              enabled: true
-              port: 3000 
+  zigbee2mqtt:
+    enabled: true
+    image:
+      repository: koenkk/zigbee2mqtt
+      tag: 1.32.2
+      pullPolicy: IfNotPresent
+    ingress:
+      main:
+        enabled: true
+        host: zigbee.homessistant.local
+    persistence:
+      config:
+        enabled: true
+        mountPath: /app/data
+        capacity:
+          storage: 1Gi  
+      usb:
+        enabled: true
+        hostPath: /dev/ttyUSB0
+        type: hostPath
+    resources:
+      limits:
+        smarter-devices/ttyUSB0: 1
+#       cpu: 500m
+#       memory: 512Mi
+      requests:
+        smarter-devices/ttyUSB0: 1
+#       cpu: 100m
+#       memory: 256Mi
+    service:
+      main:
+        ports:
+          http:
+            port: 8080
 
-    zigbee2mqtt:
-      enabled: true
-      image:
-        repository: koenkk/zigbee2mqtt
-        tag: 1.32.2
-        pullPolicy: IfNotPresent
-      ingress:
-        main:
-          enabled: true
-          host: zigbee.homessistant.local
-      persistence:
-        config:
-          enabled: true
-          mountPath: /app/data
-          capacity:
-            storage: 1Gi  
-        usb:
-          enabled: true
-          hostPath: /dev/ttyUSB0
-          type: hostPath
-      resources:
-        limits:
-          smarter-devices/ttyUSB0: 1
-  #       cpu: 500m
-  #       memory: 512Mi
-        requests:
-          smarter-devices/ttyUSB0: 1
-  #       cpu: 100m
-  #       memory: 256Mi
-      service:
-        main:
-          ports:
-            http:
-              port: 8080
-
-      securityContext:
-        runAsUser: 1000
-        fsGroup: 1000
-      env:
-      # -- Set the data folder for Zigbee2MQTT.
-        ZIGBEE2MQTT_DATA: /data
+    securityContext:
+      runAsUser: 1000
+      fsGroup: 1000
+    env:
+    # -- Set the data folder for Zigbee2MQTT.
+      ZIGBEE2MQTT_DATA: /data
