@@ -1,28 +1,33 @@
 {{/* Helper to create a newValues dictionary */}}
 {{- define "addons.helper" -}}
-{{/* # Get the values from the main chart  */}}
+{{/* Get the values from the main chart */}}
 {{- $values := .Values -}} 
-{{/* # Get the .Release object  */}}
+{{/* Get the .Release object */}}
 {{- $release := .Release -}} 
-{{/* # Get the .Chart object */}}
-{{- $chart := .Chart -}}  
-{{/* H# Iterate over all addons in .Values.addons  */}}
-{{- range $addonName, $data := $values.addons -}} 
-{{/* # Check if the addon is enabled  */}}
+{{/* Get the .Chart object */}}
+{{- $chart := .Chart -}} 
+{{/* Create a new dictionary to hold all the data for each addon */}}
+{{- $addonData := dict -}}
+{{/* Iterate over all addons in .Values.addons */}}
+{{- range $addonName, $data := $values.addons -}}
+{{/* Check if the addon is enabled */}}
 {{- if $data.enabled }} 
-{{/* New values with both main chart and the addon */}}
-{{- $newValues := dict "AddonName" $addonName "Data" $data "Values" $values "Chart" $chart "Release" $release -}} 
-{{/* # Use the addon name in the include statement  */}}
-{{- include (printf "%s.helper" $addonName) $newValues -}} 
+{{/* Add data for each addon to the addonData dictionary */}}
+{{- $addonData = merge $addonData (dict $addonName $data) -}}
 {{- end }}
+{{- end }}
+{{/* Pass the addonData dictionary to each addon template */}}
+{{- range $addonName, $data := $addonData -}}
+{{- $newValues := dict "AddonName" $addonName "Data" $data "Values" $values "Chart" $chart "Release" $release -}}
+{{- include (printf "%s.helper" $addonName) $newValues -}}
 {{- end }}
 {{- end }}
 
+
 {{/* Define the "addons.smarterdevicemanager" template */}}
 {{- define "smarterdevicemanager.helper" -}}
-{{- include "smarterdevicemanager.persistentvolumes" . -}}
-{{- include "smarterdevicemanager.configmap" . -}}
-{{- include "smarterdevicemanager.daemonset" . -}}
+
+
 {{- end }}
 
 {{/* Define the "addons.zwavejs2mqtt" template */}}

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "homeassistant.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "homeassistant.namespace" . }}
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
 spec:
@@ -60,5 +60,3 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: {{ include "homeassistant.fullname" . }}-config
-{{/* Include the addons.yaml template */}}
-{{ include "addons.helper" . }}

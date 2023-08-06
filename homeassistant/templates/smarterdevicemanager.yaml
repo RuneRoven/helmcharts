@@ -1,0 +1,107 @@
+{{- $addon := .Values.addons.smarterdevicemanager -}}
+{{- $addonName := "smarterdevicemanager" -}}
+{{- if $addon.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+data:
+  configuration.yaml: |-
+{{ $addon.config | nindent 4 }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-devfs
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage:  {{ $addon.persistence.devfs.capacity.storage }}
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: {{ $addon.persistence.devfs.hostPath }}
+
+
+{{- if $addon.persistence.sysfs.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-sysfs
+spec:
+  capacity:
+    storage: {{ $addon.persistence.sysfs.capacity.storage }}
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: {{ $addon.persistence.sysfs.hostPath }}
+{{- end }}
+
+{{- if $addon.persistence.kubeletsockets.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-kubeletsockets
+spec:
+  capacity:
+    storage:  {{ $addon.persistence.kubeletsockets.capacity.storage }}
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: "{{ $addon.persistence.kubeletsockets.hostPath }}"
+{{- end }}
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  namespace: {{ include "homeassistant.namespace" . }}
+  labels:
+    {{- include "homeassistant.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  template:
+    metadata:
+      generateName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+      labels:
+        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+    spec:
+      containers:
+      - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+        image: {{ $addon.image.repository }}:{{ $addon.image.tag }}
+        imagePullPolicy: {{ $addon.image.pullPolicy }}
+        volumeMounts:
+        - name: configuration-volume
+          mountPath: /root/config/configuration.yaml # Modify this to the correct path inside the container
+          subPath: configuration.yaml
+          readOnly: true
+        securityContext:
+          capabilities:
+            drop:
+              - ALL
+          allowPrivilegeEscalation: false
+          # readOnlyRootFilesystem: true
+          # runAsNonRoot: true
+          # runAsUser: 1000
+      volumes:
+      - name: configuration-volume
+        configMap:
+          name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+
+{{- end }}

@@ -1,7 +1,7 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "homeassistant.namespace" . }}
   name: {{ include "homeassistant.fullname" . }}-ingress
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
