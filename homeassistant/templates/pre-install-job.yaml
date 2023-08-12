@@ -5,6 +5,7 @@
 {{- $pvcSize := "" }}
 {{- $fullName := include "homeassistant.fullname" . }}
 {{- $addonNamespace := include "homeassistant.namespace" . }}
+{{- $mainPvc := .Values.persistence.config.retain }}
 {{- range $addonName, $addonConfig := .Values.addons }}
   {{- if $addonConfig.persistence.retain }}
 		{{- $retainEnabled = true }}
@@ -29,7 +30,37 @@
   
   {{- end }}
 {{- end }}
+
+{{- if $mainPvc }}
+  {{- $retainEnabled = true }}
+  {{- if ne $addonNames "" }}
+      {{- $addonNames = printf "%s,%s" $addonNames $fullName }}
+  {{- else }}
+      {{- $addonNames = printf "%s" $addonName }}
+  {{- end }}
+  {{- if ne (len $pvcNames) 0 }}
+    {{- $pvcNames = printf "%s,%s-config" $pvcNames $fullName }}
+  {{- else }}
+    {{- $pvcNames = printf "%s-config" $fullName }}
+  {{- end }}
+  
+  {{- if ne (len $pvcSize) 0 }}
+    {{- $pvcSize = printf "%s,%s" $pvcSize .Values.persistence.config.size }}
+  {{- else }}
+    {{- $pvcSize = printf "%s" .Values.persistence.config.size }}
+  {{- end }}
+{{- end }}
+
 {{- if $retainEnabled }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: retain-local-path
+  namespace: {{ include "homeassistant.namespace" . }}
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -55,65 +86,76 @@ spec:
                 pvc_name=$(echo $ADDON_PVC_NAMES | cut -d',' -f$i)
                 size=$(echo $PVC_SIZES | cut -d',' -f$i)
                 app="$NAME-$(echo $ADDON_NAMES | cut -d',' -f$i)"
+                pvc_check_output=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE 2>&1)
 
-                # Check if the PVC already exists
-                if kubectl get pvc $pvc_name --namespace=$NAMESPACE &> /dev/null; then
-                  # Get the PVC status
-                  pvc_status=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE -o jsonpath='{.status.phase}')
+                if echo "$pvc_check_output" | grep -q "not found"; then
+                  # PVC doesn't exist, create it using corresponding PV
+                  echo "PVC $pvc_name does not exist."
+                  echo "Checking for released PV."
+                  pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
+                  if echo "$pv_name" | grep -q "not found"; then
+                    echo "No PV found. Requesting new."
 
+                  else
+                    echo "Found existing PV. Checking status"
+                    pv_status=$(kubectl get pv $pv_name -o jsonpath='{.status.phase}')
+                    if [ "$pv_status" = "Released" ]; then
+                      echo "PV-status=Released. Creating new PVC bounding existing PV"
+                      pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
+                      kubectl patch pv $pv_name --type json -p '[{"op": "remove", "path": "/spec/claimRef"}]'
+                      kubectl delete pvc $pvc_name --namespace=$NAMESPACE --ignore-not-found=true
+                      kubectl apply -f - <<-EOF
+                        apiVersion: v1
+                        kind: PersistentVolumeClaim
+                        metadata:
+                          name: $pvc_name
+                          namespace: $NAMESPACE
+                          labels:
+                            app: $app
+                        spec:
+                          storageClassName: retain-local-path
+                          volumeName: $pv_name
+                          accessModes:
+                            - ReadWriteOnce
+                          resources:
+                            requests:
+                              storage: $size
+              EOF
+                    else
+                      echo "Existing PV already bounded. Requesting new PV"
+                      kubectl apply -f - <<-EOF
+                        apiVersion: v1
+                        kind: PersistentVolumeClaim
+                        metadata:
+                          name: $pvc_name
+                          namespace: $NAMESPACE
+                          labels:
+                            app: $app
+                        spec:
+                          storageClassName: retain-local-path
+                          accessModes:
+                            - ReadWriteOnce
+                          resources:
+                            requests:
+                              storage: $size
+              EOF
+                    fi
+                  fi
+                else
                   # If the PVC is already bound, skip creating a new one
+                  pvc_status=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE -o jsonpath='{.status.phase}')
                   if [ "$pvc_status" = "Bound" ]; then
                     echo "PVC $pvc_name already exists and is bound. Skipping PVC creation."
                   else
-                    # PVC exists but not bound, recreate it using corresponding PV
-                    pv_name=$(kubectl get pv -n $NAMESPACE -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
-                    kubectl patch pv $pv_name --type json -p '[{"op": "remove", "path": "/spec/claimRef"}]'
-                    kubectl delete pvc $pvc_name --namespace=$NAMESPACE --ignore-not-found=true
-                    kubectl apply -f - <<-EOF
-                      apiVersion: v1
-                      kind: PersistentVolumeClaim
-                      metadata:
-                        name: $pvc_name
-                        namespace: $NAMESPACE
-                        labels:
-                          app: $app
-                      spec:
-                        storageClassName: retain-local-path
-                        volumeName: $pv_name
-                        accessModes:
-                          - ReadWriteOnce
-                        resources:
-                          requests:
-                            storage: $size
-              EOF
+                    echo "PVC $pvc_name already exists but not bounded. Skipping PVC creation."
+                    # Intentionally fail the pod to stop the Job
+                    exit 1
                   fi
-                else
-                  # PVC doesn't exist, create it using corresponding PV
-                  pv_name=$(kubectl get pv -n $NAMESPACE -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
-                  kubectl apply -f - <<-EOF
-                    apiVersion: v1
-                    kind: PersistentVolumeClaim
-                    metadata:
-                      name: $pvc_name
-                      namespace: $NAMESPACE
-                      labels:
-                        app: $app
-                    spec:
-                      storageClassName: retain-local-path
-                      volumeName: $pv_name
-                      accessModes:
-                        - ReadWriteOnce
-                      resources:
-                        requests:
-                          storage: $size
-              EOF
                 fi
               done
 
-              # Intentionally fail the pod to stop the Job
+              
               exit 1
-
-
           volumeMounts:
             - name: shared-data
               mountPath: /tmp

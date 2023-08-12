@@ -1,3 +1,4 @@
+{{- if not $addon.persistence.retain }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,6 +12,4 @@ spec:
   resources:
     requests:
       storage: {{ default .Values.persistence.config.size "1Gi" }}
-  {{- if .Values.persistence.config.storageClass }}
-  storageClassName: {{ default .Values.persistence.config.storageClassName "standard" }}
-  {{- end }}
+{{- end }}

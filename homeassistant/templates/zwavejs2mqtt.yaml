@@ -2,16 +2,20 @@
 {{- $addonName := "zwavejs2mqtt" -}}
 {{- $namespace := .Release.Namespace -}}
 {{- if $addon.enabled }}
-{{- if $addon.persistence.retain }}
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
+{{- if not $addon.persistence.retain }}
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: retain-local-path
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
   namespace: {{ include "homeassistant.namespace" . }}
-provisioner: rancher.io/local-path
-volumeBindingMode: WaitForFirstConsumer
-reclaimPolicy: Retain
-
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $addon.persistence.config.capacity.storage }}
 {{- end }}
 ---
 apiVersion: apps/v1

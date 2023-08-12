@@ -41,9 +41,6 @@ ingress:
     #   - secretName: chart-example.local-tls
     #     hosts:
     #       - chart-example.local
-serviceAccount:
-  name: ""
-  create: true
 
 # -- Enable devices to be discoverable
 hostNetwork: true
@@ -94,7 +91,6 @@ persistence:
     enabled: true
     retain: true
     size: 2Gi
-pvNamesConfigMap: pv-names-configmap
 
 addons:
   smarterdevicemanager:

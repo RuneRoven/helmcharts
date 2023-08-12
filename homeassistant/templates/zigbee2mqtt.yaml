@@ -12,17 +12,7 @@ data:
   configuration.yaml: |-
     {{ $addon.config | nindent 4 }}
 ---
-{{- if $addon.persistence.retain }}
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: manual-storage
-  namespace: {{ include "homeassistant.namespace" . }}
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
----
-{{- end }}
----
+{{- if not $addon.persistence.retain }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -36,12 +26,7 @@ spec:
   resources:
     requests:
       storage: {{ $addon.persistence.config.capacity.storage }}
-  {{- if $addon.persistence.retain }}
-  selector:
-    matchLabels:
-      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
-  storageClassName: manual-storage
-  {{- end }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: ReplicaSet
