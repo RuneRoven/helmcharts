@@ -93,9 +93,9 @@ persistence:
   config:
     enabled: true
     retain: true
-    storageClassName: "standard"
     size: 2Gi
-      
+pvNamesConfigMap: pv-names-configmap
+
 addons:
   smarterdevicemanager:
     enabled: true
@@ -115,17 +115,17 @@ addons:
         enabled: true
         hostPath: /dev
         capacity:
-          storage: 1Gi
+          storage: 50Mi
       sysfs:
         enabled: true
         hostPath: /sys
         capacity:
-          storage: 1Gi
-      kubeletsockets:
+          storage: 50Mi
+      deviceplugin:
         enabled: true
         hostPath: "/var/lib/kubelet/device-plugins"
         capacity:
-          storage: 1Gi
+          storage: 50Mi
     # -- Custom priority class for different treatment by the scheduler
     # Setting this is not necessary, but it is recommended.
     # [[ref]](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/)
@@ -154,20 +154,26 @@ addons:
         enabled: true
         host: zwave.homessistant.local
     persistence:
+      retain: true
+      use: false
       config:
         enabled: true
         mountPath: /usr/src/app/store
         capacity:
-          storage: 1Gi    
+          storage: 100Mi   
       usb:
-        enabled: true
+        enabled: false
         hostPath: /dev/ttyUSB1
         type: hostPath
-    resources:
+    resources: 
       limits:
         smarter-devices/ttyUSB1: 1
+        cpu: 500m
+        memory: 512Mi        
       requests:
         smarter-devices/ttyUSB1: 1
+        cpu: 100m
+        memory: 256Mi
     securityContext:
       privileged: true
     service:
@@ -180,34 +186,57 @@ addons:
             port: 3000 
 
   zigbee2mqtt:
-    enabled: true
+    enabled: false
     image:
       repository: koenkk/zigbee2mqtt
-      tag: 1.32.2
+      tag: 1.26.0 #1.19.1
       pullPolicy: IfNotPresent
+    config: |-
+      # Home Assistant integration (MQTT discovery)
+      homeassistant: true
+      # allow new devices to join
+      permit_join: true
+      # MQTT settings
+      mqtt:
+        base_topic: zigbee
+        server: 'mqtt://united-manufacturing-hub-mqtt.united-manufacturing-hub.svc.cluster.local:1883'
+        user: node-red
+        password: INSECURE_INSECURE_INSECURE
+        client_id: 'zigbee2mqtt'
+        reject_unauthorized: true
+        include_device_information: true
+        version: 5
+      advanced:
+        log_level: debug
+      serial:
+        # Location of USB adapter. use ezsp for homeassistant skyconnect
+        adapter: ezsp
+        port: /dev/ttyUSB0
+      frontend: true
     ingress:
       main:
         enabled: true
         host: zigbee.homessistant.local
     persistence:
+      retain: false
       config:
         enabled: true
-        mountPath: /app/data
+        mountPath: /app/data/configuration.yaml
         capacity:
-          storage: 1Gi  
+          storage: 100Mi 
       usb:
-        enabled: true
+        enabled: false
         hostPath: /dev/ttyUSB0
         type: hostPath
     resources:
       limits:
         smarter-devices/ttyUSB0: 1
-#       cpu: 500m
-#       memory: 512Mi
+        cpu: 500m
+        memory: 512Mi
       requests:
         smarter-devices/ttyUSB0: 1
-#       cpu: 100m
-#       memory: 256Mi
+        cpu: 100m
+        memory: 256Mi
     service:
       main:
         ports:
@@ -219,4 +248,4 @@ addons:
       fsGroup: 1000
     env:
     # -- Set the data folder for Zigbee2MQTT.
-      ZIGBEE2MQTT_DATA: /data
+      ZIGBEE2MQTT_DATA: /app/data

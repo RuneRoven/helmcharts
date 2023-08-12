@@ -1,3 +1,11 @@
+Congratulations! Your Helm Chart is ready to be installed.
+
+To ensure proper configuration, a pre-installation job will be executed.
+Please wait for the job to complete before proceeding with the installation.
+
+To monitor the job status, run:
+kubectl get jobs -n {{ .Release.Namespace }}
+
 
 {{- $name := default .Chart.Name .Release.Name }}
 {{- $namespace := default .Release.Namespace "default" }}

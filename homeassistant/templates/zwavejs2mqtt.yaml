@@ -1,45 +1,27 @@
 {{- $addon := .Values.addons.zwavejs2mqtt -}}
 {{- $addonName := "zwavejs2mqtt" -}}
+{{- $namespace := .Release.Namespace -}}
 {{- if $addon.enabled }}
-apiVersion: v1
-kind: PersistentVolume
+{{- if $addon.persistence.retain }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
 metadata:
-  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pv
+  name: retain-local-path
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
-spec:
-  capacity:
-    storage: {{ $addon.persistence.config.capacity.storage }}
-  accessModes:
-    - ReadOnlyMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
-  hostPath:
-    path: {{ $addon.persistence.config.mountPath }}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
-  namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ $addon.persistence.config.capacity.storage }}
-  storageClassName: manual
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
+
 spec:
   replicas: {{ $addon.replicaCount }}
   selector:
@@ -54,20 +36,21 @@ spec:
         - name: config
           {{- if $addon.persistence.config.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
           {{- else }}
           emptyDir: {}
           {{- end }}
-
+          {{- if $addon.persistence.usb.enabled }}
         - name: usb
           {{- if index $addon.persistence "usb" }}
           {{- with $addon.persistence.usb }}
           hostPath:
             path: {{ .hostPath }}
-            type: DirectoryOrCreate # Change this to a supported type like "Directory" or "DirectoryOrCreate"
+            type: DirectoryOrCreate 
           {{- end }}
           {{- else }}
           emptyDir: {}
+          {{- end }}
           {{- end }}
       containers:
         - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
@@ -83,15 +66,17 @@ spec:
               value: {{ .Values.env.TZ }}
           {{- if $addon.resources }}
           resources:
-          {{- toYaml $addon.resources | nindent 12 }} # Update this line to remove "smarter-devices/ttyUSB1" and "smarter-devices/ttyUSB0"
+          {{- toYaml $addon.resources | nindent 12 }} 
           {{- end }}
           volumeMounts:
             - name: config
               mountPath: {{ $addon.persistence.config.mountPath }}
+            {{- if $addon.persistence.usb.enabled }}
             {{- if $addon.persistence.usb }}
             {{- with $addon.persistence.usb }}
             - name: usb
-              mountPath: {{ .hostPath }} # Use the correct mount path from the map
+              mountPath: {{ .hostPath }} 
+            {{- end }}
             {{- end }}
             {{- end }}
           livenessProbe:
@@ -119,8 +104,8 @@ kind: Service
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   selector:
     {{- include "homeassistant.selectorLabels" . | nindent 4 }}
@@ -139,8 +124,8 @@ kind: Ingress
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-ingress
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   rules:
     - host: {{ $addon.ingress.main.host }}
