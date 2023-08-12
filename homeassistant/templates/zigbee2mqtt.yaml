@@ -2,44 +2,54 @@
 {{- $addonName := "zigbee2mqtt" -}}
 {{- if $addon.enabled }}
 apiVersion: v1
-kind: PersistentVolume
+kind: ConfigMap
 metadata:
-  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pv
+  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
-spec:
-  capacity:
-    storage: {{ $addon.persistence.config.capacity.storage }}
-  accessModes:
-    - ReadOnlyMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
-  hostPath:
-    path: {{ $addon.persistence.config.mountPath }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
+data:
+  configuration.yaml: |-
+    {{ $addon.config | nindent 4 }}
+---
+{{- if $addon.persistence.retain }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual-storage
+  namespace: {{ include "homeassistant.namespace" . }}
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+{{- end }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: {{ $addon.persistence.config.capacity.storage }}
-  storageClassName: manual
+  {{- if $addon.persistence.retain }}
+  selector:
+    matchLabels:
+      app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+  storageClassName: manual-storage
+  {{- end }}
 ---
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   replicas: {{ $addon.replicaCount }}
   selector:
@@ -52,23 +62,8 @@ spec:
     spec:
       volumes:
         - name: config
-          {{- if $addon.persistence.config.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
-
-        - name: usb
-          {{- if index $addon.persistence "usb" }}
-          {{- with $addon.persistence.usb }}
-          hostPath:
-            path: {{ .hostPath }}
-            type: DirectoryOrCreate # Change this to a supported type like "Directory" or "DirectoryOrCreate"
-          {{- end }}
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
+          configMap:
+            name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
       containers:
         - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
           image: "{{ $addon.image.repository }}:{{ $addon.image.tag }}"
@@ -81,6 +76,8 @@ spec:
           env:
             - name: TZ
               value: {{ .Values.env.TZ }}
+            - name: ZIGBEE2MQTT_DATA
+              value: /app/data
           {{- if $addon.resources }}
           resources:
           {{- toYaml $addon.resources | nindent 12 }} # Update this line to remove "smarter-devices/ttyUSB1" and "smarter-devices/ttyUSB0"
@@ -88,12 +85,7 @@ spec:
           volumeMounts:
             - name: config
               mountPath: {{ $addon.persistence.config.mountPath }}
-            {{- if $addon.persistence.usb }}
-            {{- with $addon.persistence.usb }}
-            - name: usb
-              mountPath: {{ .hostPath }} # Use the correct mount path from the map
-            {{- end }}
-            {{- end }}
+              subPath: configuration.yaml
           livenessProbe:
             tcpSocket:
               port: {{ $addon.service.main.ports.http.port }}
@@ -113,14 +105,15 @@ spec:
       automountServiceAccountToken: {{ $addon.automountServiceAccountToken }}
       schedulerName: {{ $addon.schedulerName }}
       enableServiceLinks: {{ $addon.enableServiceLinks }}
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   selector:
     {{- include "homeassistant.selectorLabels" . | nindent 4 }}
@@ -139,8 +132,8 @@ kind: Ingress
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-ingress
   namespace: {{ include "homeassistant.namespace" . }}
-  labels:
-    {{- include "homeassistant.labels" . | nindent 4 }}
+  labels: 
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   rules:
     - host: {{ $addon.ingress.main.host }}
