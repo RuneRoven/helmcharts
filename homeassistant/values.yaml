@@ -92,6 +92,32 @@ persistence:
     retain: true
     size: 2Gi
 
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /
+    port: http
+    timeout: 20
+    period: 10
+    initialDelay: 20
+  readiness:
+    enabled: true
+    httpGet:
+      path: /
+    port: http
+    timeout: 20
+    period: 10
+    initialDelay: 20
+  startup:
+    enabled: true
+    httpGet:
+      path: /
+    port: http
+    timeout: 30
+    period: 10
+    initialDelay: 20
+
 addons:
   smarterdevicemanager:
     enabled: true
@@ -138,6 +164,31 @@ addons:
       # readOnlyRootFilesystem: true
       # runAsNonRoot: true
       # runAsUser: 1000
+    probes:
+      liveness:
+        enabled: false
+        httpGet:
+          path: /
+        port: 3000
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      readiness:
+        enabled: false
+        httpGet:
+          path: /
+        port: 3000
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      startup:
+        enabled: false
+        httpGet:
+          path: /
+        port: 3000
+        timeout: 20
+        period: 10
+        initialDelay: 20
 
   zwavejs2mqtt:
     enabled : true
@@ -145,10 +196,12 @@ addons:
       pullPolicy: IfNotPresent
       repository: zwavejs/zwavejs2mqtt
       tag: 8.22.0
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
     ingress:
       main:
         enabled: true
-        host: zwave.homessistant.local
+        host: zwave.homeassistant.local
     persistence:
       retain: true
       use: false
@@ -180,13 +233,41 @@ addons:
           websocket:
             enabled: true
             port: 3000 
+      type: LoadBalancer
+    probes:
+      liveness:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      readiness:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      startup:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
+        period: 10
+        initialDelay: 20
 
   zigbee2mqtt:
-    enabled: false
+    enabled: true
     image:
       repository: koenkk/zigbee2mqtt
       tag: 1.26.0 #1.19.1
       pullPolicy: IfNotPresent
+    hostNetwork: false
+    dnsPolicy: ClusterFirst
     config: |-
       # Home Assistant integration (MQTT discovery)
       homeassistant: true
@@ -208,16 +289,17 @@ addons:
         # Location of USB adapter. use ezsp for homeassistant skyconnect
         adapter: ezsp
         port: /dev/ttyUSB0
-      frontend: true
+      frontend: 
+        port: 8084
     ingress:
       main:
         enabled: true
-        host: zigbee.homessistant.local
+        host: zigbee.homeassistant.local
     persistence:
-      retain: false
+      retain: true
       config:
         enabled: true
-        mountPath: /app/data/configuration.yaml
+        mountPath: /app/data/
         capacity:
           storage: 100Mi 
       usb:
@@ -237,11 +319,36 @@ addons:
       main:
         ports:
           http:
-            port: 8080
-
+            port: 8084
+      type: LoadBalancer
     securityContext:
       runAsUser: 1000
       fsGroup: 1000
     env:
     # -- Set the data folder for Zigbee2MQTT.
-      ZIGBEE2MQTT_DATA: /app/data
+      #ZIGBEE2MQTT_DATA: /app/data
+    probes:
+      liveness:
+        enabled: true
+        httpGet:
+          path: /
+        port: 8084
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      readiness:
+        enabled: true
+        httpGet:
+          path: /
+        port: 8084
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      startup:
+        enabled: true
+        httpGet:
+          path: /
+        port: 8084
+        timeout: 30
+        period: 10
+        initialDelay: 20

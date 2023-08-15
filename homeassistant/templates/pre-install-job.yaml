@@ -5,6 +5,8 @@
 {{- $pvcSize := "" }}
 {{- $fullName := include "homeassistant.fullname" . }}
 {{- $addonNamespace := include "homeassistant.namespace" . }}
+{{- $chartValues := include "homeassistant.labels" . | nindent 4 | trim }}
+
 {{- $mainPvc := .Values.persistence.config.retain }}
 {{- range $addonName, $addonConfig := .Values.addons }}
   {{- if $addonConfig.persistence.retain }}
@@ -36,7 +38,7 @@
   {{- if ne $addonNames "" }}
       {{- $addonNames = printf "%s,%s" $addonNames $fullName }}
   {{- else }}
-      {{- $addonNames = printf "%s" $addonName }}
+      {{- $addonNames = printf "%s" $fullName }}
   {{- end }}
   {{- if ne (len $pvcNames) 0 }}
     {{- $pvcNames = printf "%s,%s-config" $pvcNames $fullName }}
@@ -50,7 +52,9 @@
     {{- $pvcSize = printf "%s" .Values.persistence.config.size }}
   {{- end }}
 {{- end }}
-
+#!!!!!!!!!!!!! left to do. add auto patching to change storage class if changing to retain. !!!!!!!!!!!
+#  persistentVolumeReclaimPolicy: Retain
+#  storageClassName: retain-local-path
 {{- if $retainEnabled }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -80,19 +84,24 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo $SIZE
+              LABELS="$LABELS"  # Retrieve the LABELS environment variable
+              label1=$(echo "$LABELS" | grep "helm.sh/chart" | awk -F':' '{print $2}')
+              label2=$(echo "$LABELS" | grep "app.kubernetes.io/version" | awk -F':' '{print $2}')
+              label3=$(echo "$LABELS" | grep "app.kubernetes.io/managed-by" | awk -F':' '{print $2}')
+              label4=$(echo "$LABELS" | grep "app.kubernetes.io/name" | awk -F':' '{print $2}')
+              label5=$(echo "$LABELS" | grep "app.kubernetes.io/instance" | awk -F':' '{print $2}')
               # Loop through each PVC name
               for i in $(seq 1 $(echo $ADDON_PVC_NAMES | tr ',' ' ' | wc -w)); do
                 pvc_name=$(echo $ADDON_PVC_NAMES | cut -d',' -f$i)
                 size=$(echo $PVC_SIZES | cut -d',' -f$i)
-                app="$NAME-$(echo $ADDON_NAMES | cut -d',' -f$i)"
+                #app="$NAME-$(echo $ADDON_NAMES | cut -d',' -f$i)"
                 pvc_check_output=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE 2>&1)
+                pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
 
                 if echo "$pvc_check_output" | grep -q "not found"; then
                   # PVC doesn't exist, create it using corresponding PV
                   echo "PVC $pvc_name does not exist."
                   echo "Checking for released PV."
-                  pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
                   if echo "$pv_name" | grep -q "not found"; then
                     echo "No PV found. Requesting new."
 
@@ -101,7 +110,6 @@ spec:
                     pv_status=$(kubectl get pv $pv_name -o jsonpath='{.status.phase}')
                     if [ "$pv_status" = "Released" ]; then
                       echo "PV-status=Released. Creating new PVC bounding existing PV"
-                      pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
                       kubectl patch pv $pv_name --type json -p '[{"op": "remove", "path": "/spec/claimRef"}]'
                       kubectl delete pvc $pvc_name --namespace=$NAMESPACE --ignore-not-found=true
                       kubectl apply -f - <<-EOF
@@ -110,8 +118,12 @@ spec:
                         metadata:
                           name: $pvc_name
                           namespace: $NAMESPACE
-                          labels:
-                            app: $app
+                          labels: 
+                            helm.sh/chart: $label1
+                            app.kubernetes.io/version: $label2
+                            app.kubernetes.io/managed-by: $label3
+                            app.kubernetes.io/name: $label4
+                            app.kubernetes.io/instance: $label5
                         spec:
                           storageClassName: retain-local-path
                           volumeName: $pv_name
@@ -130,7 +142,11 @@ spec:
                           name: $pvc_name
                           namespace: $NAMESPACE
                           labels:
-                            app: $app
+                            helm.sh/chart: $label1
+                            app.kubernetes.io/version: $label2
+                            app.kubernetes.io/managed-by: $label3
+                            app.kubernetes.io/name: $label4
+                            app.kubernetes.io/instance: $label5
                         spec:
                           storageClassName: retain-local-path
                           accessModes:
@@ -145,7 +161,14 @@ spec:
                   # If the PVC is already bound, skip creating a new one
                   pvc_status=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE -o jsonpath='{.status.phase}')
                   if [ "$pvc_status" = "Bound" ]; then
-                    echo "PVC $pvc_name already exists and is bound. Skipping PVC creation."
+                    storage_status=$(kubectl get pv $pv_name -o jsonpath='{.spec.storageClassName}')
+                    if [ "$storage_status" = "local-path" ]; then
+                      kubectl patch pv $pv_name --type json -p '[{"op": "replace", "path": "/spec/persistentVolumeReclaimPolicy", "value": "Retain"}]'
+                      kubectl patch pv $pv_name --type json -p '[{"op": "replace", "path": "/spec/storageClassName", "value": "retain-local-path"}]'
+                      echo "PVC $pvc_name already exists and is bound. Changing storage class for PV."
+                    else
+                      echo "PVC $pvc_name already exists and is bound. Skipping PVC creation."
+                    fi
                   else
                     echo "PVC $pvc_name already exists but not bounded. Skipping PVC creation."
                     # Intentionally fail the pod to stop the Job
@@ -155,7 +178,7 @@ spec:
               done
 
               
-              exit 1
+              #exit 1
           volumeMounts:
             - name: shared-data
               mountPath: /tmp
@@ -170,6 +193,8 @@ spec:
               value: {{ $pvcSize }}
             - name: NAME
               value: {{ $fullName }}
+            - name: LABELS
+              value: {{ $chartValues | quote }}
       volumes:
         - name: shared-data
           emptyDir: {}

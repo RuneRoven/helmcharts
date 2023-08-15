@@ -17,7 +17,7 @@ spec:
         {{- include "homeassistant.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Always  # Set the restart policy to "Always"
-      serviceAccountName: {{ include "homeassistant.serviceAccountName" . }}
+      serviceAccountName: {{ include "homeassistant.fullname" . }}
       hostNetwork: {{ .Values.hostNetwork }}
       dnsPolicy: {{ .Values.dnsPolicy }}
       nodeSelector:
@@ -35,14 +35,42 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.main.ports.http.port }}
+          {{- if  .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
-              path: /
-              port: http
+              path: {{ .Values.probes.liveness.httpGet.path }}
+              port: {{ .Values.probes.liveness.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelay }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeout }}
+            periodSeconds: {{ .Values.probes.liveness.period }}
+            successThreshold: 1
+            failureThreshold: 10
+          {{- end }}
+          {{- if  .Values.probes.readiness.enabled }}
           readinessProbe:
             httpGet:
-              path: /
-              port: http
+              path: {{ .Values.probes.readiness.httpGet.path }}
+              port: {{ .Values.probes.readiness.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelay }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeout }}
+            periodSeconds: {{ .Values.probes.readiness.period }}
+            successThreshold: 1
+            failureThreshold: 10
+          {{- end }}
+          {{- if  .Values.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.httpGet.path }}
+              port: {{ .Values.probes.startup.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelay }}
+            timeoutSeconds: {{ .Values.probes.startup.timeout }}
+            periodSeconds: {{ .Values.probes.startup.period }}
+            successThreshold: 1
+            failureThreshold: 10
+          {{- end }}
           env:
           {{- range $key, $value := .Values.env }}
           {{- if ne $value "" }}

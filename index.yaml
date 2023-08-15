@@ -10,9 +10,9 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.8.0
-    created: "2023-08-06T14:00:24.1636732+02:00"
+    created: "2023-08-15T21:30:36.7864134+02:00"
     description: A Helm chart for Kubernetes
-    digest: 558cb50d787092a4b34d0432dfebb0a371ab9e078c64ec4513a808492a8c23e4
+    digest: ba66938ea31a13b4201e62e33b942e3fe432ca5ac50b078d52fdc142e4490003
     keywords:
     - home-automation
     - mqtt
@@ -38,7 +38,7 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.6.3
-    created: "2023-08-06T14:00:24.1625826+02:00"
+    created: "2023-08-15T21:30:36.785258+02:00"
     description: A Helm chart for Kubernetes
     digest: b70e8b661c18f2456eb8c1b35e87f14f8e91788447df199b8f78fceef2fcc167
     keywords:
@@ -54,4 +54,4 @@ entries:
     urls:
     - https://runeroven.github.io/helmcharts/homeassistant-0.1.0.tgz
     version: 0.1.0
-generated: "2023-08-06T14:00:24.1620314+02:00"
+generated: "2023-08-15T21:30:36.6657899+02:00"

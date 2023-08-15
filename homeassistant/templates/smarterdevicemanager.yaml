@@ -32,11 +32,10 @@ spec:
       priorityClassName: {{ $addon.priorityClassName }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
-      dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: default
-      serviceAccount: default
+      dnsPolicy: {{ $addon.dnsPolicy }}
+      hostNetwork: {{ $addon.hostNetwork }}
+      serviceAccountName: {{ include "homeassistant.fullname" . }}
       automountServiceAccountToken: true
-      hostNetwork: true
       securityContext: {}
       schedulerName: default-scheduler
       enableServiceLinks: true
@@ -69,6 +68,42 @@ spec:
           # readOnlyRootFilesystem: true
           # runAsNonRoot: true
           # runAsUser: 1000
+        {{- if  $addon.probes.liveness.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ $addon.probes.liveness.httpGet.path }}
+            port: {{ $addon.probes.liveness.port }}
+            scheme: HTTP
+          initialDelaySeconds: {{ $addon.probes.liveness.initialDelay }}
+          timeoutSeconds: {{ $addon.probes.liveness.timeout }}
+          periodSeconds: {{ $addon.probes.liveness.period }}
+          successThreshold: 1
+          failureThreshold: 10
+        {{- end }}
+        {{- if  $addon.probes.readiness.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ $addon.probes.readiness.httpGet.path }}
+            port: {{ $addon.probes.readiness.port }}
+            scheme: HTTP
+          initialDelaySeconds: {{ $addon.probes.readiness.initialDelay }}
+          timeoutSeconds: {{ $addon.probes.readiness.timeout }}
+          periodSeconds: {{ $addon.probes.readiness.period }}
+          successThreshold: 1
+          failureThreshold: 10
+        {{- end }}
+        {{- if  $addon.probes.startup.enabled }}
+        startupProbe:
+          httpGet:
+            path: {{ $addon.probes.startup.httpGet.path }}
+            port: {{ $addon.probes.startup.port }}
+            scheme: HTTP
+          initialDelaySeconds: {{ $addon.probes.startup.initialDelay }}
+          timeoutSeconds: {{ $addon.probes.startup.timeout }}
+          periodSeconds: {{ $addon.probes.startup.period }}
+          successThreshold: 1
+          failureThreshold: 10
+        {{- end }}  
       volumes:
         - name: config
           configMap:

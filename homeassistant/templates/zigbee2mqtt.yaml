@@ -43,12 +43,24 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
+        app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
     spec:
       volumes:
         - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
+        - name: configmap-volume
           configMap:
             name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+      initContainers:
+          - name: copy-config
+            image: busybox:latest
+            command: ['sh', '-c', 'cp -f /configmap-data/ /app/data/']
+            volumeMounts:
+              - name: configmap-volume
+                mountPath: /configmap-data  
+              - name: config
+                mountPath: /app/data 
       containers:
         - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
           image: "{{ $addon.image.repository }}:{{ $addon.image.tag }}"
@@ -61,8 +73,10 @@ spec:
           env:
             - name: TZ
               value: {{ .Values.env.TZ }}
-            - name: ZIGBEE2MQTT_DATA
-              value: /app/data
+           {{- range $key, $val := $addon.env }}   
+            - name: {{ $key }}
+              value: {{ $val.value }}
+          {{- end }}
           {{- if $addon.resources }}
           resources:
           {{- toYaml $addon.resources | nindent 12 }} # Update this line to remove "smarter-devices/ttyUSB1" and "smarter-devices/ttyUSB0"
@@ -70,23 +84,50 @@ spec:
           volumeMounts:
             - name: config
               mountPath: {{ $addon.persistence.config.mountPath }}
-              subPath: configuration.yaml
+          {{- if  $addon.probes.liveness.enabled }}
           livenessProbe:
-            tcpSocket:
-              port: {{ $addon.service.main.ports.http.port }}
+            httpGet:
+              path: {{ $addon.probes.liveness.httpGet.path }}
+              port: {{ $addon.probes.liveness.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ $addon.probes.liveness.initialDelay }}
+            timeoutSeconds: {{ $addon.probes.liveness.timeout }}
+            periodSeconds: {{ $addon.probes.liveness.period }}
+            successThreshold: 1
+            failureThreshold: 10
+          {{- end }}
+          {{- if  $addon.probes.readiness.enabled }}
           readinessProbe:
-            tcpSocket:
-              port: {{ $addon.service.main.ports.http.port }}
+            httpGet:
+              path: {{ $addon.probes.readiness.httpGet.path }}
+              port: {{ $addon.probes.readiness.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ $addon.probes.readiness.initialDelay }}
+            timeoutSeconds: {{ $addon.probes.readiness.timeout }}
+            periodSeconds: {{ $addon.probes.readiness.period }}
+            successThreshold: 1
+            failureThreshold: 10
+          {{- end }}
+          {{- if  $addon.probes.startup.enabled }}
           startupProbe:
-            tcpSocket:
-              port: {{ $addon.service.main.ports.http.port }}
+            httpGet:
+              path: {{ $addon.probes.startup.httpGet.path }}
+              port: {{ $addon.probes.startup.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ $addon.probes.startup.initialDelay }}
+            timeoutSeconds: {{ $addon.probes.startup.timeout }}
+            periodSeconds: {{ $addon.probes.startup.period }}
+            successThreshold: 1
+            failureThreshold: 10
+        {{- end }}  
           {{- if $addon.securityContext }}
           securityContext:
             privileged: true
           {{- end }}
       restartPolicy: {{ $addon.restartPolicy }}
       dnsPolicy: {{ $addon.dnsPolicy }}
-      serviceAccountName: {{ include "homeassistant.serviceAccountName" . }}
+      hostNetwork: {{ $addon.hostNetwork }}
+      serviceAccountName: {{ include "homeassistant.fullname" . }}
       automountServiceAccountToken: {{ $addon.automountServiceAccountToken }}
       schedulerName: {{ $addon.schedulerName }}
       enableServiceLinks: {{ $addon.enableServiceLinks }}
@@ -101,7 +142,7 @@ metadata:
     app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
 spec:
   selector:
-    {{- include "homeassistant.selectorLabels" . | nindent 4 }}
+    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
   ports:
     {{- range $key, $port := $addon.service.main.ports }}
     - name: {{ $key }}

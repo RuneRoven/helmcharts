@@ -1,4 +1,4 @@
-{{- if not $addon.persistence.retain }}
+{{- if not .Values.persistence.config.retain }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,10 +6,12 @@ metadata:
   namespace: {{ include "homeassistant.namespace" . }}
   labels:
     {{- include "homeassistant.labels" . | nindent 4 }}
+  app:
+
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ default .Values.persistence.config.size "1Gi" }}
+      storage: {{ default .Values.persistence.config.size "2Gi" }}
 {{- end }}
