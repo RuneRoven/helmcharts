@@ -262,6 +262,7 @@ addons:
 
   zigbee2mqtt:
     enabled: true
+    useConfigMap: false
     image:
       repository: koenkk/zigbee2mqtt
       tag: 1.26.0 #1.19.1
@@ -272,7 +273,7 @@ addons:
       # Home Assistant integration (MQTT discovery)
       homeassistant: true
       # allow new devices to join
-      permit_join: true
+      permit_join: false
       # MQTT settings
       mqtt:
         base_topic: zigbee

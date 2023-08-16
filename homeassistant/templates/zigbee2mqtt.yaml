@@ -49,18 +49,24 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
+        {{- if  $addon.useConfigMap }}
         - name: configmap-volume
           configMap:
             name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
+        
       initContainers:
           - name: copy-config
             image: busybox:latest
-            command: ['sh', '-c', 'cp -f /configmap-data/ /app/data/']
+            command: 
+              - sh
+              - '-c'
+              - cp -f /configmap-data/* /app/data
             volumeMounts:
               - name: configmap-volume
                 mountPath: /configmap-data  
               - name: config
-                mountPath: /app/data 
+                mountPath: /app/data/
+        {{- end }}
       containers:
         - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
           image: "{{ $addon.image.repository }}:{{ $addon.image.tag }}"

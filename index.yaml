@@ -1,6 +1,27 @@
 apiVersion: v1
 entries:
   homeassistant:
+  - apiVersion: v2
+    appVersion: 2023.8.0
+    created: "2023-08-16T21:14:54.0949201+02:00"
+    description: A Helm chart for Kubernetes
+    digest: 34f71d15f72d01cdc808c904d11fb3e84cb52daa97d4dded1072dbb3e138793c
+    keywords:
+    - home-automation
+    - mqtt
+    - iot
+    - internet-of-things
+    kubeVersion: '>=1.22.0-0'
+    name: homeassistant
+    sources:
+    - https://github.com/home-assistant/core
+    - https://gitlab.com/arm-research/smarter/smarter-device-manager/
+    - https://www.zigbee2mqtt.io/
+    - https://zwave-js.github.io/zwave-js-ui/#/
+    type: application
+    urls:
+    - https://runeroven.github.io/helmcharts/homeassistant-0.1.4.tgz
+    version: 0.1.4
   - annotations:
       artifacthub.io/changes: |-
         - kind: fixed
@@ -10,7 +31,7 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.8.0
-    created: "2023-08-15T21:30:36.7864134+02:00"
+    created: "2023-08-16T21:14:54.0932468+02:00"
     description: A Helm chart for Kubernetes
     digest: ba66938ea31a13b4201e62e33b942e3fe432ca5ac50b078d52fdc142e4490003
     keywords:
@@ -38,7 +59,7 @@ entries:
           url: https://github.com/home-assistant/core
     apiVersion: v2
     appVersion: 2023.6.3
-    created: "2023-08-15T21:30:36.785258+02:00"
+    created: "2023-08-16T21:14:54.0334414+02:00"
     description: A Helm chart for Kubernetes
     digest: b70e8b661c18f2456eb8c1b35e87f14f8e91788447df199b8f78fceef2fcc167
     keywords:
@@ -54,4 +75,4 @@ entries:
     urls:
     - https://runeroven.github.io/helmcharts/homeassistant-0.1.0.tgz
     version: 0.1.0
-generated: "2023-08-15T21:30:36.6657899+02:00"
+generated: "2023-08-16T21:14:53.9309932+02:00"
