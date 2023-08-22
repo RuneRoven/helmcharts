@@ -1,17 +1,54 @@
-{{- $addon := .Values.addons.zigbee2mqtt -}}
-{{- $addonName := "zigbee2mqtt" -}}
+{{- $addon := .Values.addons.vscode -}}
+{{- $addonName := "vscode" -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $fullName := include "homeassistant.fullname" . }}
+{{- $addonNames := "" }}
+{{- $pvcNames := "" }}
+{{- $mountPath := "" }}
+{{- $mainPvc := .Values.persistence.config.retain }}
+
+{{- range $addon, $addonConfig := .Values.addons }}
+  {{- if and $addonConfig.enabled $addonConfig.persistence.retain }}
+    
+    {{- if ne $addonNames "" }}
+      {{- $addonNames = printf "%s,%s" $addonNames $addon }}
+    {{- else }}
+      {{- $addonNames = printf "%s" $addon }}
+    {{- end }}
+    
+    {{- if ne (len $pvcNames) 0 }}
+      {{- $pvcNames = printf "%s,%s-%s-config-pvc" $pvcNames $fullName $addon }}
+    {{- else }}
+      {{- $pvcNames = printf "%s-%s-config-pvc" $fullName $addon }}
+    {{- end }}
+    
+    {{- if ne (len $mountPath) 0 }}
+      {{- $mountPath = printf "%s,%s" $mountPath $addonConfig.persistence.config.mountPath }}
+    {{- else }}
+      {{- $mountPath = printf "%s" $addonConfig.persistence.config.mountPath }}
+    {{- end }}
+  
+  {{- end }}
+{{- end }}
+{{- if $mainPvc }}
+  {{- if ne $addonNames "" }}
+      {{- $addonNames = printf "%s,%s" $addonNames $fullName }}
+  {{- else }}
+      {{- $addonNames = printf "%s" $fullName }}
+  {{- end }}
+  {{- if ne (len $pvcNames) 0 }}
+    {{- $pvcNames = printf "%s,%s-config" $pvcNames $fullName }}
+  {{- else }}
+    {{- $pvcNames = printf "%s-config" $fullName }}
+  {{- end }}
+  
+  {{- if ne (len $mountPath) 0 }}
+    {{- $mountPath = printf "%s,%s" $mountPath .Values.volumeMounts.mountPath }}
+  {{- else }}
+    {{- $mountPath = printf "%s" .Values.volumeMounts.mountPath }}
+  {{- end }}
+{{- end }}
 {{- if $addon.enabled }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
-  namespace: {{ include "homeassistant.namespace" . }}
-  labels: 
-    app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
-data:
-  configuration.yaml: |-
-    {{ $addon.config | nindent 4 }}
----
 {{- if not $addon.persistence.retain }}
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -46,26 +83,14 @@ spec:
         app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
     spec:
       volumes:
-        - name: config
-          persistentVolumeClaim:
-            claimName: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config-pvc
-        {{- if  $addon.useConfigMap }}
-        - name: configmap-volume
-          configMap:
-            name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}-config
         
-      initContainers:
-        - name: copy-config
-          image: busybox:latest
-          command: 
-            - sh
-            - '-c'
-            - cp -f /configmap-data/* /app/data
-          volumeMounts:
-            - name: configmap-volume
-              mountPath: /configmap-data  
-            - name: config
-              mountPath: /app/data/
+        {{- if gt (len $addonNames) 0 }}
+          {{- range $index, $name := split "," $addonNames }}
+          {{- $claim := index (split "," $pvcNames) $index }}
+        - name: {{ $name }}
+          persistentVolumeClaim:
+            claimName: {{ $claim }}
+          {{- end }}
         {{- end }}
       containers:
         - name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
@@ -74,22 +99,30 @@ spec:
           ports:
             {{- range $key, $port := $addon.service.main.ports }}
             - name: {{ $key }}
-              containerPort: {{ $port.port }}
+              containerPort: {{ $port.targetPort }}
             {{- end }}
           env:
             - name: TZ
               value: {{ .Values.env.TZ }}
-           {{- range $key, $val := $addon.env }}   
-            - name: {{ $key }}
-              value: {{ $val.value }}
-          {{- end }}
+           {{- range $addon.env }}
+            {{- if hasKey . "name" }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- end }}
           {{- if $addon.resources }}
           resources:
-          {{- toYaml $addon.resources | nindent 12 }} # Update this line to remove "smarter-devices/ttyUSB1" and "smarter-devices/ttyUSB0"
+          {{- toYaml $addon.resources | nindent 12 }} 
           {{- end }}
           volumeMounts:
-            - name: config
-              mountPath: {{ $addon.persistence.config.mountPath }}
+ 
+            {{- if gt (len $addonNames) 0 }}
+              {{- range $index, $name := split "," $addonNames }}
+              {{- $path := index (split "," $mountPath) $index }}
+            - name: {{ $name }}
+              mountPath: {{ $path }}
+              {{- end }}
+            {{- end }}
           {{- if  $addon.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -125,10 +158,10 @@ spec:
             periodSeconds: {{ $addon.probes.startup.period }}
             successThreshold: 1
             failureThreshold: 10
-        {{- end }}  
+          {{- end }}  
           {{- if $addon.securityContext }}
           securityContext:
-            privileged: true
+            privileged: {{ $addon.securityContext.privileged }}
           {{- end }}
       restartPolicy: {{ $addon.restartPolicy }}
       dnsPolicy: {{ $addon.dnsPolicy }}
@@ -137,7 +170,6 @@ spec:
       automountServiceAccountToken: {{ $addon.automountServiceAccountToken }}
       schedulerName: {{ $addon.schedulerName }}
       enableServiceLinks: {{ $addon.enableServiceLinks }}
-
 ---
 apiVersion: v1
 kind: Service
@@ -154,7 +186,7 @@ spec:
     - name: {{ $key }}
       protocol: TCP
       port: {{ $port.port }}
-      targetPort: {{ $key }}
+      targetPort: {{ $port.targetPort }}
     {{- end }}
   type: {{ $addon.service.type }}
 ---

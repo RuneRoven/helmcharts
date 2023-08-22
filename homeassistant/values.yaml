@@ -7,7 +7,7 @@
 # for example myHomeassistant-service and if using namePrefix: skeletor it will be myHomeassistant-skeletor-service
 namePrefix: ""
 namespace: homeassistant
-
+preJob: false
 env:
   TZ: UTC
   #ENV_VAR_NAME_1: ENV_VAR_VALUE_1
@@ -76,7 +76,7 @@ securityContext:
 
 volumeMounts: 
   name: config
-  mountPath: /etc/homeassistant
+  mountPath: /config
 
 volumes: []
 # - name: config
@@ -196,7 +196,7 @@ addons:
       pullPolicy: IfNotPresent
       repository: zwavejs/zwavejs2mqtt
       tag: 8.22.0
-    hostNetwork: true
+    hostNetwork: false
     dnsPolicy: ClusterFirstWithHostNet
     ingress:
       main:
@@ -204,7 +204,6 @@ addons:
         host: zwave.homeassistant.local
     persistence:
       retain: true
-      use: false
       config:
         enabled: true
         mountPath: /usr/src/app/store
@@ -224,7 +223,7 @@ addons:
         cpu: 100m
         memory: 256Mi
     securityContext:
-      privileged: true
+      privileged: false
     service:
       main:
         ports:
@@ -268,7 +267,7 @@ addons:
       tag: 1.26.0 #1.19.1
       pullPolicy: IfNotPresent
     hostNetwork: false
-    dnsPolicy: ClusterFirst
+    dnsPolicy: ClusterFirstWithHostNet
     config: |-
       # Home Assistant integration (MQTT discovery)
       homeassistant: true
@@ -351,5 +350,67 @@ addons:
           path: /
         port: 8084
         timeout: 30
+        period: 10
+        initialDelay: 20
+  vscode:
+    enabled: true
+    sharedVolumes: true
+    image:
+      pullPolicy: IfNotPresent
+      repository: ghcr.io/coder/code-server
+      tag: 4.16.1-bullseye
+    hostNetwork: false
+    dnsPolicy: ClusterFirstWithHostNet
+    env: 
+      - name: PASSWORD
+        value: "code321"
+    ingress:
+      main:
+        enabled: true
+        host: vsc.homeassistant.local
+    persistence:
+      retain: true
+      config:
+        enabled: true
+        mountPath: /home/coder
+        capacity:
+          storage: 100Mi 
+    resources: 
+      limits:
+        cpu: 500m
+        memory: 512Mi        
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    service:
+      main:
+        ports:
+          http:
+            port: 8122
+            targetPort: 8080
+      type: LoadBalancer
+    probes:
+      liveness:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      readiness:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
+        period: 10
+        initialDelay: 20
+      startup:
+        enabled: true
+        httpGet:
+          path: /
+        port: http
+        timeout: 20
         period: 10
         initialDelay: 20

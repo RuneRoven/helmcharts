@@ -1,4 +1,4 @@
-
+{{- if .Values.preJob }}
 {{- $retainEnabled := false }}
 {{- $addonNames := "" }}
 {{- $pvcNames := "" }}
@@ -7,15 +7,16 @@
 {{- $addonNamespace := include "homeassistant.namespace" . }}
 {{- $chartValues := include "homeassistant.labels" . | nindent 4 | trim }}
 
+
 {{- $mainPvc := .Values.persistence.config.retain }}
 {{- range $addonName, $addonConfig := .Values.addons }}
-  {{- if $addonConfig.persistence.retain }}
+  {{- if and $addonConfig.enabled $addonConfig.persistence.retain }}
 		{{- $retainEnabled = true }}
     
     {{- if ne $addonNames "" }}
-      {{- $addonNames = printf "%s,%s" $addonNames $addonName }}
+      {{- $addonNames = printf "%s,%s-%s" $addonNames $fullName $addonName }}
     {{- else }}
-      {{- $addonNames = printf "%s" $addonName }}
+      {{- $addonNames = printf "%s-%s" $fullName $addonName }}
     {{- end }}
     
     {{- if ne (len $pvcNames) 0 }}
@@ -52,9 +53,7 @@
     {{- $pvcSize = printf "%s" .Values.persistence.config.size }}
   {{- end }}
 {{- end }}
-#!!!!!!!!!!!!! left to do. add auto patching to change storage class if changing to retain. !!!!!!!!!!!
-#  persistentVolumeReclaimPolicy: Retain
-#  storageClassName: retain-local-path
+
 {{- if $retainEnabled }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -90,11 +89,12 @@ spec:
               label3=$(echo "$LABELS" | grep "app.kubernetes.io/managed-by" | awk -F':' '{print $2}')
               label4=$(echo "$LABELS" | grep "app.kubernetes.io/name" | awk -F':' '{print $2}')
               label5=$(echo "$LABELS" | grep "app.kubernetes.io/instance" | awk -F':' '{print $2}')
+              
               # Loop through each PVC name
               for i in $(seq 1 $(echo $ADDON_PVC_NAMES | tr ',' ' ' | wc -w)); do
                 pvc_name=$(echo $ADDON_PVC_NAMES | cut -d',' -f$i)
                 size=$(echo $PVC_SIZES | cut -d',' -f$i)
-                #app="$NAME-$(echo $ADDON_NAMES | cut -d',' -f$i)"
+                podName="$(echo $ADDON_NAMES | cut -d',' -f$i)"
                 pvc_check_output=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE 2>&1)
                 pv_name=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="'$pvc_name'")].metadata.name}')
 
@@ -160,6 +160,8 @@ spec:
                 else
                   # If the PVC is already bound, skip creating a new one
                   pvc_status=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE -o jsonpath='{.status.phase}')
+                  pvc_access=$(kubectl get pvc $pvc_name --namespace=$NAMESPACE -o json | jq -r '.status.accessModes[0]')
+
                   if [ "$pvc_status" = "Bound" ]; then
                     storage_status=$(kubectl get pv $pv_name -o jsonpath='{.spec.storageClassName}')
                     if [ "$storage_status" = "local-path" ]; then
@@ -169,12 +171,61 @@ spec:
                     else
                       echo "PVC $pvc_name already exists and is bound. Skipping PVC creation."
                     fi
+                    echo "$pvc_access"
+                    echo "$shared"
+                    echo "$podName"
+                    echo "$NAME"
+                    if [ "$pvc_access" = "ReadWriteMany" ] && [ "$SHARED" = "true" ]; then
+                      echo "PVC $pvc_name exists and is bound. Changeing accessmode."
+                      echo "Scaling down $podName to recreate PVC"
+                      if [ "$podName" = "$NAME" ]; then
+                        kubectl scale statefulset $podName --replicas=0 --namespace=$NAMESPACE
+                      else
+                        kubectl scale deployment $podName --replicas=0 --namespace=$NAMESPACE
+                      fi
+
+                      # Wait for pods to terminate using the constructed selector
+                      
+                      kubectl wait --for=delete pod --selector=app=$podName --timeout=5m --namespace=$NAMESPACE
+                      
+                      kubectl delete pvc $pvc_name --namespace=$NAMESPACE --ignore-not-found=true
+                      kubectl patch pv $pv_name --type json -p '[{"op": "remove", "path": "/spec/claimRef"}]'
+                      kubectl patch pv $pv_name --type json -p '[{"op": "replace", "path": "/spec/accessModes/0", "value": "ReadWriteMany"}]'
+                      kubectl apply -f - <<-EOF
+                        apiVersion: v1
+                        kind: PersistentVolumeClaim
+                        metadata:
+                          name: $pvc_name
+                          namespace: $NAMESPACE
+                          labels: 
+                            helm.sh/chart: $label1
+                            app.kubernetes.io/version: $label2
+                            app.kubernetes.io/managed-by: $label3
+                            app.kubernetes.io/name: $label4
+                            app.kubernetes.io/instance: $label5
+                        spec:
+                          storageClassName: retain-local-path
+                          volumeName: $pv_name
+                          accessModes:
+                            - ReadWriteMany
+                          resources:
+                            requests:
+                              storage: $size
+              EOF
+                      echo "Scaling up $podName"
+                      if [ "$podName" = "$NAME" ]; then 
+                        kubectl scale statefulset $podName --replicas=1 --namespace=$NAMESPACE
+                      else
+                        kubectl scale deployment $podName --replicas=1 --namespace=$NAMESPACE
+                      fi
+                    fi
                   else
                     echo "PVC $pvc_name already exists but not bounded. Skipping PVC creation."
                     # Intentionally fail the pod to stop the Job
                     exit 1
                   fi
                 fi
+                
               done
 
               
@@ -195,10 +246,13 @@ spec:
               value: {{ $fullName }}
             - name: LABELS
               value: {{ $chartValues | quote }}
+            - name: SHARED
+              value: "{{ .Values.addons.vscode.sharedVolumes | default "false" }}"
       volumes:
         - name: shared-data
           emptyDir: {}
       restartPolicy: Never
   backoffLimit: 1
 #  ttlSecondsAfterFinished: 1
+{{- end }}
 {{- end }}

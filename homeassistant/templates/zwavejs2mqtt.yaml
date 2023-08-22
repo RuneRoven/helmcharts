@@ -19,13 +19,12 @@ spec:
 {{- end }}
 ---
 apiVersion: apps/v1
-kind: ReplicaSet
+kind: Deployment
 metadata:
   name: {{ include "homeassistant.fullname" . }}-{{ $addonName }}
   namespace: {{ include "homeassistant.namespace" . }}
   labels: 
     app: {{ include "homeassistant.fullname" . }}-{{ $addonName }} 
-
 spec:
   replicas: {{ $addon.replicaCount }}
   selector:
@@ -121,7 +120,7 @@ spec:
           {{- end }}  
           {{- if $addon.securityContext }}
           securityContext:
-            privileged: true
+            privileged: {{ $addon.securityContext.privileged }}
           {{- end }}
       restartPolicy: {{ $addon.restartPolicy }}
       dnsPolicy: {{ $addon.dnsPolicy }}
